@@ -1,0 +1,20 @@
+{
+  "version": "2026-08-22",
+  "mappings": {
+    "cadin(大臼歯)": { "majorType": "CAD", "detailType": "CADインレー（大臼歯）" },
+    "cadin(小臼歯)": { "majorType": "CAD", "detailType": "CADインレー（小臼歯）" },
+    "cadin": { "majorType": "CAD", "detailType": "CADインレー（部位未指定）" },
+    "cad(大臼歯)": { "majorType": "CAD", "detailType": "CAD冠（大臼歯）" },
+    "cad(小臼歯)": { "majorType": "CAD", "detailType": "CAD冠（小臼歯）" },
+    "cad(前歯)": { "majorType": "CAD", "detailType": "CAD冠（前歯）" },
+    "cadアンレー": { "majorType": "CAD", "detailType": "CADアンレー" },
+    "cad": { "majorType": "CAD", "detailType": "CAD（部位未指定）" },
+    "zrin": { "majorType": "Zr", "detailType": "Zrインレー" },
+    "zrcr": { "majorType": "Zr", "detailType": "Zrクラウン" },
+    "zrアンレー": { "majorType": "Zr", "detailType": "Zrアンレー" },
+    "zr": { "majorType": "Zr", "detailType": "Zr（種類未指定）" },
+    "emax": { "majorType": "Other", "detailType": "e.max" },
+    "オルセラin": { "majorType": "Other", "detailType": "オールセラミック・インレー" },
+    "オルセラ": { "majorType": "Other", "detailType": "オールセラミック" }
+  }
+}

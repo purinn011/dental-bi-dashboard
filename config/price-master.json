@@ -1,0 +1,14 @@
+{
+  "version": "2026-08-22",
+  "currency": "JPY",
+  "prices": {
+    "CAD": {
+      "internal": 1500,
+      "external": { "low": 7500, "mid": 8500, "high": 9500 }
+    },
+    "Zr": {
+      "internal": 4580,
+      "external": { "low": 9000, "mid": 10500, "high": 12000 }
+    }
+  }
+}
