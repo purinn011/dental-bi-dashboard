@@ -1,2 +1,86 @@
-# dental-bi-dashboard
-院内補綴制作の月別・種類別実績BI（匿名集計データのみ）
+# 院内補綴制作ダッシュボード
+
+院内補綴制作の月別・種類別本数、院内原価、外注相当額、推定削減額を表示するGitHub Pages向け静的BIです。
+
+## 技術選定
+
+| 選択肢 | 判断 |
+|---|---|
+| HTML + JavaScriptのみ | 小規模には適するが、複数フィルター・3グラフ・状態管理の拡張性が弱いため不採用 |
+| React + JavaScript | 実装可能だが、集計データの列変更を型で検知できないため不採用 |
+| React + TypeScript + Vite | 採用。フィルター連動、コンポーネント分割、GitHub Pagesビルドに適する |
+
+主なライブラリはReact、TypeScript、Vite、Recharts、Vitestです。
+
+## 重要な公開ルール
+
+元CSVには患者単位の情報が含まれます。元CSVはGitへ追加せず、ローカル変換で生成した`public/data/dashboard.json`だけを公開してください。
+
+公開JSONには以下だけが入ります。
+
+- 月
+- 日付基準
+- 大分類・詳細種類
+- 本数・未来予定本数
+- 院内原価
+- 外注相当額（下限・標準・上限）
+- 月途中・未来月の状態
+
+## ローカル起動
+
+```bash
+npm install
+npm run dev
+```
+
+## 実データの更新
+
+元CSVを`data/raw/`へ置き、次を実行します。
+
+```bash
+npm run data:build -- --input data/raw/cerec.csv --as-of 2026-08-22
+```
+
+生成物:
+
+- `public/data/dashboard.json`：GitHub Pagesへ公開可能な匿名集計
+- `build-reports/data-quality-report.json`：ローカル確認用。除外理由と元CSV行番号
+
+集計ルール:
+
+1. 部位数と補綴物数が同数なら1対1で展開
+2. 補綴物が1種類で部位が複数なら同じ種類を各部位へ展開
+3. それ以外は自動集計せず要確認へ除外
+
+## 検証
+
+```bash
+npm run verify
+```
+
+検証内容:
+
+- CAD・Zrの料金計算
+- 実データの暫定基準値との一致
+- その他を0円扱いしないこと
+- 公開JSONのフィールドallowlist
+- 本番ビルド
+- ビルド成果物への元CSV列名混入チェック
+
+## GitHub Pages
+
+1. GitHubリポジトリを作成
+2. `main`へコードを反映
+3. Settings → Pages → Sourceで`GitHub Actions`を選択
+4. Actionsの`Deploy GitHub Pages`を実行
+
+Viteの`base`はGitHub Actions上で`GITHUB_REPOSITORY`から自動設定されます。
+
+## データ更新時のチェックリスト
+
+- [ ] 元CSVがGitの追跡対象になっていない
+- [ ] `npm run data:build`が成功
+- [ ] 要確認行数の増減を確認
+- [ ] `npm run verify`が成功
+- [ ] 金額の前提単価が最新
+- [ ] PagesのKPIと手計算サンプルが一致

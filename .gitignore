@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.DS_Store
+*.local
+*.tsbuildinfo
+data/raw/*
+!data/raw/README.md
+build-reports/
+upload/
+*.csv
+!.github/**/*.csv
