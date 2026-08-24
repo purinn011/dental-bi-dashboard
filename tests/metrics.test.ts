@@ -10,34 +10,49 @@ const baseRow: MonthlyAggregate = {
   units: 1,
   futureUnits: 0,
   internalCost: 1500,
-  externalLow: 7500,
-  externalMid: 8500,
-  externalHigh: 9500,
+  externalLow: 9000,
+  externalMid: 9000,
+  externalHigh: 9000,
   isPartialMonth: true,
   isFutureMonth: false,
 }
 
 describe('amount calculations', () => {
-  it('uses the selected external price scenario', () => {
-    expect(externalAmount(baseRow, 'low')).toBe(7500)
-    expect(externalAmount(baseRow, 'mid')).toBe(8500)
-    expect(externalAmount(baseRow, 'high')).toBe(9500)
+  it('uses the fixed CAD/CAM crown external price', () => {
+    expect(externalAmount(baseRow, 'adopted')).toBe(9000)
   })
 
-  it('calculates CAD standard savings as 7,000 yen per unit', () => {
-    expect(savingsAmount(baseRow, 'mid')).toBe(7000)
+  it('calculates CAD/CAM crown savings as 7,500 yen per unit', () => {
+    expect(savingsAmount(baseRow, 'adopted')).toBe(7500)
   })
 
-  it('calculates Zr standard savings as 5,920 yen per unit', () => {
+  it('selects the adopted, Narita Dental, and Toyo Dental inlay prices', () => {
+    const inlayRow = {
+      ...baseRow,
+      detailType: 'CADインレー（小臼歯）',
+      externalLow: 7500,
+      externalMid: 6560,
+      externalHigh: 7500,
+    }
+    expect(externalAmount(inlayRow, 'adopted')).toBe(7500)
+    expect(externalAmount(inlayRow, 'narita')).toBe(6560)
+    expect(externalAmount(inlayRow, 'toyoDental')).toBe(7500)
+    expect(savingsAmount(inlayRow, 'adopted')).toBe(6000)
+    expect(savingsAmount(inlayRow, 'narita')).toBe(5060)
+  })
+
+  it('calculates Zr savings and preserves a missing Narita Dental price', () => {
     const zrRow = {
       ...baseRow,
       majorType: 'Zr' as const,
       internalCost: 4580,
-      externalLow: 9000,
-      externalMid: 10500,
-      externalHigh: 12000,
+      externalLow: 12000,
+      externalMid: null,
+      externalHigh: 13000,
     }
-    expect(savingsAmount(zrRow, 'mid')).toBe(5920)
+    expect(savingsAmount(zrRow, 'adopted')).toBe(7420)
+    expect(savingsAmount(zrRow, 'narita')).toBeNull()
+    expect(savingsAmount(zrRow, 'toyoDental')).toBe(8420)
   })
 
   it('does not treat unpriced rows as zero', () => {
@@ -49,7 +64,7 @@ describe('amount calculations', () => {
       externalMid: null,
       externalHigh: null,
     }
-    expect(savingsAmount(unpriced, 'mid')).toBeNull()
+    expect(savingsAmount(unpriced, 'adopted')).toBeNull()
     expect(sumNullable([null, null])).toBeNull()
   })
 })

@@ -1,0 +1,61 @@
+{
+  "version": "2026-08-24",
+  "currency": "JPY",
+  "vendors": ["採用単価", "成田デンタル", "東洋デンタル"],
+  "items": [
+    {
+      "category": "CAD/CAMインレー",
+      "product": "小臼歯",
+      "adopted": 7500,
+      "narita": 6560,
+      "toyoDental": 7500
+    },
+    {
+      "category": "CAD/CAMインレー",
+      "product": "大臼歯",
+      "adopted": 7500,
+      "narita": 8500,
+      "toyoDental": 8000
+    },
+    {
+      "category": "CAD/CAM冠",
+      "product": "前歯",
+      "adopted": 9000,
+      "narita": 9500,
+      "toyoDental": 9000
+    },
+    {
+      "category": "CAD/CAM冠",
+      "product": "小臼歯",
+      "adopted": 9000,
+      "narita": 7500,
+      "toyoDental": 7500
+    },
+    {
+      "category": "CAD/CAM冠",
+      "product": "大臼歯",
+      "adopted": 9000,
+      "narita": 9000,
+      "toyoDental": 9000
+    },
+    {
+      "category": "ジルコニア",
+      "product": "クラウン",
+      "adopted": 12000,
+      "narita": null,
+      "toyoDental": 13000
+    },
+    {
+      "category": "ジルコニア",
+      "product": "インレー",
+      "adopted": 12000,
+      "narita": null,
+      "toyoDental": 13000
+    }
+  ],
+  "notes": [
+    "ユーザー入力値を添付画像の印字値より優先しています。",
+    "成田デンタルのCAD/CAM冠は添付料金表、ジルコニアは東洋デンタルの添付料金表から補完しています。",
+    "成田デンタルの添付料金表には2024年6月現在と記載されているため、発注前に最新価格を確認してください。"
+  ]
+}

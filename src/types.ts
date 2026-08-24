@@ -1,10 +1,16 @@
 export type DateBasis = 'date' | 'setDate'
 export type MajorType = 'CAD' | 'Zr' | 'Other'
-export type Scenario = 'low' | 'mid' | 'high'
+export type DashboardView = 'performance' | 'priceComparison'
+export type OutsourcePriceSource = 'adopted' | 'narita' | 'toyoDental'
 
 export interface PriceDefinition {
   internal: number
-  external: Record<Scenario, number>
+  external: Record<OutsourcePriceSource, number | null>
+}
+
+export interface PriceMaster {
+  defaults: Partial<Record<MajorType, PriceDefinition>>
+  details: Record<string, PriceDefinition>
 }
 
 export interface MonthlyAggregate {
@@ -42,6 +48,6 @@ export interface DashboardMeta {
 
 export interface DashboardData {
   meta: DashboardMeta
-  priceMaster: Partial<Record<MajorType, PriceDefinition>>
+  priceMaster: PriceMaster
   monthly: MonthlyAggregate[]
 }
