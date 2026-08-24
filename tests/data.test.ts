@@ -68,7 +68,7 @@ describe('generated dashboard data', () => {
     expect(zirconiaCrowns.every((row) => row.externalToyoDental === row.units * 13000)).toBe(true)
 
     const zirconiaInlays = data.monthly.filter((row) => row.detailType === 'Zrインレー')
-    expect(zirconiaInlays.every((row) => row.externalNarita === null)).toBe(true)
+    expect(zirconiaInlays.every((row) => row.externalNarita === row.units * 12000)).toBe(true)
     expect(zirconiaInlays.every((row) => row.externalToyoDental === row.units * 7900)).toBe(true)
 
     const zirconiaOnlays = data.monthly.filter((row) => row.detailType === 'Zrアンレー')

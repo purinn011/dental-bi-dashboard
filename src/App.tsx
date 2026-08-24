@@ -37,7 +37,7 @@ const OUTSOURCE_PRICE_LABELS: Record<OutsourcePriceSource, string> = {
 }
 
 const numberFormat = new Intl.NumberFormat('ja-JP')
-const DASHBOARD_DATA_VERSION = '2026-08-24.3'
+const DASHBOARD_DATA_VERSION = '2026-08-24.4'
 
 interface MonthChartRow {
   month: string

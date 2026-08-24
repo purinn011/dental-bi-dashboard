@@ -1,5 +1,5 @@
 {
-  "version": "2026-08-24.3",
+  "version": "2026-08-24.4",
   "currency": "JPY",
   "vendors": ["成田デンタル", "東洋デンタル"],
   "items": [
@@ -54,7 +54,7 @@
     {
       "category": "ジルコニア",
       "product": "インレー",
-      "narita": null,
+      "narita": 12000,
       "toyoDental": 7900
     },
     {
