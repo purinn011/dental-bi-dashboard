@@ -4,7 +4,7 @@ export type DashboardView = 'performance' | 'priceComparison'
 export type OutsourcePriceSource = 'narita' | 'toyoDental'
 
 export interface PriceDefinition {
-  internal: number
+  internal: number | null
   external: Record<OutsourcePriceSource, number | null>
 }
 

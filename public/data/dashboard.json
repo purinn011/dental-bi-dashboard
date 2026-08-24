@@ -1,7 +1,7 @@
 {
   "meta": {
     "schemaVersion": "1.1.0",
-    "generatedAt": "2026-08-24T11:55:05.482Z",
+    "generatedAt": "2026-08-24T12:08:27.590Z",
     "asOf": "2026-08-24",
     "sourceRows": 1924,
     "acceptedRows": 1822,
@@ -14,7 +14,7 @@
     "invalidDateRows": 15,
     "invalidSetDateRows": 103,
     "typeMasterVersion": "2026-08-24.2",
-    "priceMasterVersion": "2026-08-24.2"
+    "priceMasterVersion": "2026-08-24.3"
   },
   "priceMaster": {
     "defaults": {
@@ -131,6 +131,13 @@
           "narita": null,
           "toyoDental": null
         }
+      },
+      "e.max": {
+        "internal": null,
+        "external": {
+          "narita": 12000,
+          "toyoDental": 13000
+        }
       }
     }
   },
@@ -234,8 +241,8 @@
       "units": 1,
       "futureUnits": 0,
       "internalCost": null,
-      "externalNarita": null,
-      "externalToyoDental": null,
+      "externalNarita": 12000,
+      "externalToyoDental": 13000,
       "isPartialMonth": false,
       "isFutureMonth": false
     },
@@ -299,8 +306,8 @@
       "units": 1,
       "futureUnits": 0,
       "internalCost": null,
-      "externalNarita": null,
-      "externalToyoDental": null,
+      "externalNarita": 12000,
+      "externalToyoDental": 13000,
       "isPartialMonth": false,
       "isFutureMonth": false
     },
@@ -897,8 +904,8 @@
       "units": 1,
       "futureUnits": 0,
       "internalCost": null,
-      "externalNarita": null,
-      "externalToyoDental": null,
+      "externalNarita": 12000,
+      "externalToyoDental": 13000,
       "isPartialMonth": false,
       "isFutureMonth": false
     },
@@ -1040,8 +1047,8 @@
       "units": 1,
       "futureUnits": 0,
       "internalCost": null,
-      "externalNarita": null,
-      "externalToyoDental": null,
+      "externalNarita": 12000,
+      "externalToyoDental": 13000,
       "isPartialMonth": false,
       "isFutureMonth": false
     },
@@ -1196,8 +1203,8 @@
       "units": 2,
       "futureUnits": 0,
       "internalCost": null,
-      "externalNarita": null,
-      "externalToyoDental": null,
+      "externalNarita": 24000,
+      "externalToyoDental": 26000,
       "isPartialMonth": false,
       "isFutureMonth": false
     },
@@ -1326,8 +1333,8 @@
       "units": 2,
       "futureUnits": 0,
       "internalCost": null,
-      "externalNarita": null,
-      "externalToyoDental": null,
+      "externalNarita": 24000,
+      "externalToyoDental": 26000,
       "isPartialMonth": false,
       "isFutureMonth": false
     },
@@ -2093,8 +2100,8 @@
       "units": 2,
       "futureUnits": 0,
       "internalCost": null,
-      "externalNarita": null,
-      "externalToyoDental": null,
+      "externalNarita": 24000,
+      "externalToyoDental": 26000,
       "isPartialMonth": false,
       "isFutureMonth": false
     },
@@ -2223,8 +2230,8 @@
       "units": 1,
       "futureUnits": 0,
       "internalCost": null,
-      "externalNarita": null,
-      "externalToyoDental": null,
+      "externalNarita": 12000,
+      "externalToyoDental": 13000,
       "isPartialMonth": false,
       "isFutureMonth": false
     },
@@ -2496,8 +2503,8 @@
       "units": 1,
       "futureUnits": 0,
       "internalCost": null,
-      "externalNarita": null,
-      "externalToyoDental": null,
+      "externalNarita": 12000,
+      "externalToyoDental": 13000,
       "isPartialMonth": false,
       "isFutureMonth": false
     },
@@ -2639,8 +2646,8 @@
       "units": 3,
       "futureUnits": 0,
       "internalCost": null,
-      "externalNarita": null,
-      "externalToyoDental": null,
+      "externalNarita": 36000,
+      "externalToyoDental": 39000,
       "isPartialMonth": false,
       "isFutureMonth": false
     },
@@ -2769,8 +2776,8 @@
       "units": 2,
       "futureUnits": 0,
       "internalCost": null,
-      "externalNarita": null,
-      "externalToyoDental": null,
+      "externalNarita": 24000,
+      "externalToyoDental": 26000,
       "isPartialMonth": false,
       "isFutureMonth": false
     },
@@ -3042,8 +3049,8 @@
       "units": 1,
       "futureUnits": 0,
       "internalCost": null,
-      "externalNarita": null,
-      "externalToyoDental": null,
+      "externalNarita": 12000,
+      "externalToyoDental": 13000,
       "isPartialMonth": false,
       "isFutureMonth": false
     },
@@ -3861,8 +3868,8 @@
       "units": 1,
       "futureUnits": 0,
       "internalCost": null,
-      "externalNarita": null,
-      "externalToyoDental": null,
+      "externalNarita": 12000,
+      "externalToyoDental": 13000,
       "isPartialMonth": false,
       "isFutureMonth": false
     },
@@ -4199,8 +4206,8 @@
       "units": 1,
       "futureUnits": 0,
       "internalCost": null,
-      "externalNarita": null,
-      "externalToyoDental": null,
+      "externalNarita": 12000,
+      "externalToyoDental": 13000,
       "isPartialMonth": false,
       "isFutureMonth": false
     },
@@ -4342,8 +4349,8 @@
       "units": 1,
       "futureUnits": 0,
       "internalCost": null,
-      "externalNarita": null,
-      "externalToyoDental": null,
+      "externalNarita": 12000,
+      "externalToyoDental": 13000,
       "isPartialMonth": false,
       "isFutureMonth": false
     },
@@ -4485,8 +4492,8 @@
       "units": 1,
       "futureUnits": 0,
       "internalCost": null,
-      "externalNarita": null,
-      "externalToyoDental": null,
+      "externalNarita": 12000,
+      "externalToyoDental": 13000,
       "isPartialMonth": false,
       "isFutureMonth": false
     },

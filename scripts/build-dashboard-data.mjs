@@ -180,7 +180,7 @@ function addAggregate(dateBasis, isoDate, unit) {
       detailType: unit.detailType,
       units: 0,
       futureUnits: 0,
-      internalCost: price ? 0 : null,
+      internalCost: price?.internal !== null && price?.internal !== undefined ? 0 : null,
       externalNarita: price?.external.narita !== null && price?.external.narita !== undefined ? 0 : null,
       externalToyoDental: price?.external.toyoDental !== null && price?.external.toyoDental !== undefined ? 0 : null,
       isPartialMonth: month === asOfMonth,
@@ -192,7 +192,7 @@ function addAggregate(dateBasis, isoDate, unit) {
   target.units += 1
   if (isFuture) target.futureUnits += 1
   if (price) {
-    target.internalCost += price.internal
+    if (target.internalCost !== null) target.internalCost += price.internal
     if (target.externalNarita !== null) target.externalNarita += price.external.narita
     if (target.externalToyoDental !== null) target.externalToyoDental += price.external.toyoDental
   }
