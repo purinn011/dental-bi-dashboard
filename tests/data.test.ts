@@ -29,7 +29,7 @@ describe('generated dashboard data', () => {
   it('contains only aggregated, allowlisted monthly fields', () => {
     const allowed = new Set([
       'month', 'dateBasis', 'majorType', 'detailType', 'units', 'futureUnits',
-      'internalCost', 'externalLow', 'externalMid', 'externalHigh',
+      'internalCost', 'externalNarita', 'externalToyoDental',
       'isPartialMonth', 'isFutureMonth',
     ])
     for (const row of data.monthly) {
@@ -40,34 +40,34 @@ describe('generated dashboard data', () => {
   it('keeps Other rows unpriced instead of converting them to zero', () => {
     const others = data.monthly.filter((row) => row.majorType === 'Other')
     expect(others.length).toBeGreaterThan(0)
-    expect(others.every((row) => row.internalCost === null && row.externalMid === null)).toBe(true)
-  })
-
-  it('applies the revised fixed external prices by detail type', () => {
-    const expectedPrices = new Map([
-      ['CADインレー（小臼歯）', 7500],
-      ['CADインレー（大臼歯）', 7500],
-      ['CAD冠（前歯）', 9000],
-      ['CAD冠（小臼歯）', 9000],
-      ['CAD冠（大臼歯）', 9000],
-      ['Zrインレー', 12000],
-      ['Zrクラウン', 12000],
-    ])
-
-    for (const [detailType, unitPrice] of expectedPrices) {
-      const rows = data.monthly.filter((row) => row.detailType === detailType)
-      expect(rows.length).toBeGreaterThan(0)
-      expect(rows.every((row) => row.externalLow === row.units * unitPrice)).toBe(true)
-    }
+    expect(others.every((row) => row.internalCost === null && row.externalNarita === null)).toBe(true)
   })
 
   it('stores vendor prices without converting missing prices to zero', () => {
     const smallInlays = data.monthly.filter((row) => row.detailType === 'CADインレー（小臼歯）')
-    expect(smallInlays.every((row) => row.externalMid === row.units * 6560)).toBe(true)
-    expect(smallInlays.every((row) => row.externalHigh === row.units * 7500)).toBe(true)
+    expect(smallInlays.every((row) => row.externalNarita === row.units * 6560)).toBe(true)
+    expect(smallInlays.every((row) => row.externalToyoDental === row.units * 7500)).toBe(true)
+
+    const smallOnlays = data.monthly.filter((row) => row.detailType === 'CADアンレー（小臼歯）')
+    expect(smallOnlays.length).toBeGreaterThan(0)
+    expect(smallOnlays.every((row) => row.externalNarita === row.units * 7500)).toBe(true)
+    expect(smallOnlays.every((row) => row.externalToyoDental === row.units * 7500)).toBe(true)
+
+    const largeOnlays = data.monthly.filter((row) => row.detailType === 'CADアンレー（大臼歯）')
+    expect(largeOnlays.length).toBeGreaterThan(0)
+    expect(largeOnlays.every((row) => row.externalNarita === row.units * 7500)).toBe(true)
+    expect(largeOnlays.every((row) => row.externalToyoDental === row.units * 8000)).toBe(true)
 
     const zirconiaCrowns = data.monthly.filter((row) => row.detailType === 'Zrクラウン')
-    expect(zirconiaCrowns.every((row) => row.externalMid === null)).toBe(true)
-    expect(zirconiaCrowns.every((row) => row.externalHigh === row.units * 13000)).toBe(true)
+    expect(zirconiaCrowns.every((row) => row.externalNarita === row.units * 12000)).toBe(true)
+    expect(zirconiaCrowns.every((row) => row.externalToyoDental === row.units * 13000)).toBe(true)
+
+    const zirconiaInlays = data.monthly.filter((row) => row.detailType === 'Zrインレー')
+    expect(zirconiaInlays.every((row) => row.externalNarita === null)).toBe(true)
+    expect(zirconiaInlays.every((row) => row.externalToyoDental === row.units * 7900)).toBe(true)
+
+    const zirconiaOnlays = data.monthly.filter((row) => row.detailType === 'Zrアンレー')
+    expect(zirconiaOnlays.every((row) => row.externalNarita === row.units * 12000)).toBe(true)
+    expect(zirconiaOnlays.every((row) => row.externalToyoDental === row.units * 7900)).toBe(true)
   })
 })

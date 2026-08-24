@@ -1,7 +1,7 @@
 export type DateBasis = 'date' | 'setDate'
 export type MajorType = 'CAD' | 'Zr' | 'Other'
 export type DashboardView = 'performance' | 'priceComparison'
-export type OutsourcePriceSource = 'adopted' | 'narita' | 'toyoDental'
+export type OutsourcePriceSource = 'narita' | 'toyoDental'
 
 export interface PriceDefinition {
   internal: number
@@ -21,9 +21,8 @@ export interface MonthlyAggregate {
   units: number
   futureUnits: number
   internalCost: number | null
-  externalLow: number | null
-  externalMid: number | null
-  externalHigh: number | null
+  externalNarita: number | null
+  externalToyoDental: number | null
   isPartialMonth: boolean
   isFutureMonth: boolean
 }

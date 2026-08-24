@@ -1,9 +1,8 @@
 import type { MonthlyAggregate, OutsourcePriceSource } from '../types'
 
 export function externalAmount(row: MonthlyAggregate, source: OutsourcePriceSource) {
-  if (source === 'narita') return row.externalMid
-  if (source === 'toyoDental') return row.externalHigh
-  return row.externalLow
+  if (source === 'narita') return row.externalNarita
+  return row.externalToyoDental
 }
 
 export function savingsAmount(row: MonthlyAggregate, source: OutsourcePriceSource) {

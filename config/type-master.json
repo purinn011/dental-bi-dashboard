@@ -1,5 +1,5 @@
 {
-  "version": "2026-08-22",
+  "version": "2026-08-24.2",
   "mappings": {
     "cadin(大臼歯)": { "majorType": "CAD", "detailType": "CADインレー（大臼歯）" },
     "cadin(小臼歯)": { "majorType": "CAD", "detailType": "CADインレー（小臼歯）" },
@@ -7,7 +7,7 @@
     "cad(大臼歯)": { "majorType": "CAD", "detailType": "CAD冠（大臼歯）" },
     "cad(小臼歯)": { "majorType": "CAD", "detailType": "CAD冠（小臼歯）" },
     "cad(前歯)": { "majorType": "CAD", "detailType": "CAD冠（前歯）" },
-    "cadアンレー": { "majorType": "CAD", "detailType": "CADアンレー" },
+    "cadアンレー": { "majorType": "CAD", "detailType": "CADアンレー（部位未指定）" },
     "cad": { "majorType": "CAD", "detailType": "CAD（部位未指定）" },
     "zrin": { "majorType": "Zr", "detailType": "Zrインレー" },
     "zrcr": { "majorType": "Zr", "detailType": "Zrクラウン" },
