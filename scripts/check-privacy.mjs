@@ -14,7 +14,7 @@ const allowedMeta = new Set([
 ])
 const allowedMonthly = new Set([
   'month', 'dateBasis', 'majorType', 'detailType', 'units', 'futureUnits',
-  'internalCost', 'externalLow', 'externalMid', 'externalHigh', 'isPartialMonth',
+  'internalCost', 'externalNarita', 'externalToyoDental', 'isPartialMonth',
   'isFutureMonth',
 ])
 

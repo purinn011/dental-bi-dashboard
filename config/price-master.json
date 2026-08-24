@@ -1,64 +1,72 @@
 {
-  "version": "2026-08-24",
+  "version": "2026-08-24.2",
   "currency": "JPY",
   "defaults": {
     "CAD": {
       "internal": 1500,
-      "external": { "adopted": 9000, "narita": null, "toyoDental": null }
+      "external": { "narita": null, "toyoDental": null }
     },
     "Zr": {
       "internal": 4580,
-      "external": { "adopted": 12000, "narita": null, "toyoDental": 13000 }
+      "external": { "narita": null, "toyoDental": null }
     }
   },
   "details": {
     "CADインレー（小臼歯）": {
       "internal": 1500,
-      "external": { "adopted": 7500, "narita": 6560, "toyoDental": 7500 }
+      "external": { "narita": 6560, "toyoDental": 7500 }
     },
     "CADインレー（大臼歯）": {
       "internal": 1500,
-      "external": { "adopted": 7500, "narita": 8500, "toyoDental": 8000 }
+      "external": { "narita": 8500, "toyoDental": 8000 }
     },
     "CADインレー（部位未指定）": {
       "internal": 1500,
-      "external": { "adopted": 7500, "narita": null, "toyoDental": null }
+      "external": { "narita": null, "toyoDental": null }
     },
-    "CADアンレー": {
+    "CADアンレー（小臼歯）": {
       "internal": 1500,
-      "external": { "adopted": 7500, "narita": null, "toyoDental": null }
+      "external": { "narita": 7500, "toyoDental": 7500 }
+    },
+    "CADアンレー（大臼歯）": {
+      "internal": 1500,
+      "external": { "narita": 7500, "toyoDental": 8000 }
+    },
+    "CADアンレー（部位未指定）": {
+      "internal": 1500,
+      "external": { "narita": 7500, "toyoDental": null }
     },
     "CAD冠（前歯）": {
       "internal": 1500,
-      "external": { "adopted": 9000, "narita": 9500, "toyoDental": 9000 }
+      "external": { "narita": 9500, "toyoDental": 9000 }
     },
     "CAD冠（小臼歯）": {
       "internal": 1500,
-      "external": { "adopted": 9000, "narita": 7500, "toyoDental": 7500 }
+      "external": { "narita": 7500, "toyoDental": 7500 }
     },
     "CAD冠（大臼歯）": {
       "internal": 1500,
-      "external": { "adopted": 9000, "narita": 9000, "toyoDental": 9000 }
+      "external": { "narita": 9000, "toyoDental": 9000 }
     },
     "CAD（部位未指定）": {
       "internal": 1500,
-      "external": { "adopted": 9000, "narita": null, "toyoDental": null }
+      "external": { "narita": null, "toyoDental": null }
     },
     "Zrインレー": {
       "internal": 4580,
-      "external": { "adopted": 12000, "narita": null, "toyoDental": 13000 }
+      "external": { "narita": null, "toyoDental": 7900 }
     },
     "Zrアンレー": {
       "internal": 4580,
-      "external": { "adopted": 12000, "narita": null, "toyoDental": null }
+      "external": { "narita": 12000, "toyoDental": 7900 }
     },
     "Zrクラウン": {
       "internal": 4580,
-      "external": { "adopted": 12000, "narita": null, "toyoDental": 13000 }
+      "external": { "narita": 12000, "toyoDental": 13000 }
     },
     "Zr（種類未指定）": {
       "internal": 4580,
-      "external": { "adopted": 12000, "narita": null, "toyoDental": null }
+      "external": { "narita": null, "toyoDental": null }
     }
   }
 }

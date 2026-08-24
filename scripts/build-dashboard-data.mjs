@@ -72,9 +72,19 @@ function normalizeType(value) {
     .replace(/\s+/g, '')
 }
 
-function classifyType(rawType) {
+function classifyToothType(part) {
+  const tooth = String(part ?? '').normalize('NFKC').trim().match(/([1-8])$/)?.[1]
+  if (tooth === '4' || tooth === '5') return '小臼歯'
+  if (tooth === '6' || tooth === '7' || tooth === '8') return '大臼歯'
+  return '部位未指定'
+}
+
+function classifyType(rawType, part) {
   const normalized = normalizeType(rawType)
   const exact = typeMaster.mappings[normalized]
+  if (normalized === 'cadアンレー') {
+    return { majorType: 'CAD', detailType: `CADアンレー（${classifyToothType(part)}）`, normalized }
+  }
   if (exact) return { ...exact, normalized }
 
   if (normalized.includes('zr') || normalized.includes('ジル')) {
@@ -140,8 +150,8 @@ for (const [index, row] of rows.entries()) {
     ? Array(parts.length).fill(rawTypes[0])
     : rawTypes
 
-  for (const rawType of expandedTypes) {
-    const classified = classifyType(rawType)
+  for (const [unitIndex, rawType] of expandedTypes.entries()) {
+    const classified = classifyType(rawType, parts[unitIndex])
     if (!typeMaster.mappings[classified.normalized]) unmappedTypes.add(classified.normalized)
     units.push({ date, setDate, ...classified })
   }
@@ -171,9 +181,8 @@ function addAggregate(dateBasis, isoDate, unit) {
       units: 0,
       futureUnits: 0,
       internalCost: price ? 0 : null,
-      externalLow: price?.external.adopted !== null && price?.external.adopted !== undefined ? 0 : null,
-      externalMid: price?.external.narita !== null && price?.external.narita !== undefined ? 0 : null,
-      externalHigh: price?.external.toyoDental !== null && price?.external.toyoDental !== undefined ? 0 : null,
+      externalNarita: price?.external.narita !== null && price?.external.narita !== undefined ? 0 : null,
+      externalToyoDental: price?.external.toyoDental !== null && price?.external.toyoDental !== undefined ? 0 : null,
       isPartialMonth: month === asOfMonth,
       isFutureMonth: month > asOfMonth,
     })
@@ -184,9 +193,8 @@ function addAggregate(dateBasis, isoDate, unit) {
   if (isFuture) target.futureUnits += 1
   if (price) {
     target.internalCost += price.internal
-    if (target.externalLow !== null) target.externalLow += price.external.adopted
-    if (target.externalMid !== null) target.externalMid += price.external.narita
-    if (target.externalHigh !== null) target.externalHigh += price.external.toyoDental
+    if (target.externalNarita !== null) target.externalNarita += price.external.narita
+    if (target.externalToyoDental !== null) target.externalToyoDental += price.external.toyoDental
   }
 }
 
@@ -204,7 +212,7 @@ const monthly = [...aggregates.values()].sort((a, b) =>
 
 const dashboard = {
   meta: {
-    schemaVersion: '1.0.0',
+    schemaVersion: '1.1.0',
     generatedAt: new Date().toISOString(),
     asOf,
     sourceRows: quality.sourceRows,

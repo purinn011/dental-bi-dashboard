@@ -32,7 +32,6 @@ const BASIS_LABELS: Record<DateBasis, string> = {
 }
 
 const OUTSOURCE_PRICE_LABELS: Record<OutsourcePriceSource, string> = {
-  adopted: '採用単価',
   narita: '成田デンタル',
   toyoDental: '東洋デンタル',
 }
@@ -108,7 +107,6 @@ function buildAmountRows(rows: MonthlyAggregate[], priceSource: OutsourcePriceSo
 interface VendorPriceItem {
   category: string
   product: string
-  adopted: number
   narita: number | null
   toyoDental: number | null
 }
@@ -121,23 +119,18 @@ function vendorMinimum(item: VendorPriceItem) {
 }
 
 function comparisonResult(item: VendorPriceItem) {
-  const minimum = vendorMinimum(item)
-  if (minimum === null) return '比較先未設定'
-  const difference = item.adopted - minimum
-  if (difference === 0) return '最安と同額'
-  if (difference < 0) return `採用単価が${numberFormat.format(Math.abs(difference))}円安い`
-  return `比較先が${numberFormat.format(difference)}円安い`
+  if (item.narita === null && item.toyoDental === null) return '両社未設定'
+  if (item.narita === null) return '東洋デンタルのみ設定'
+  if (item.toyoDental === null) return '成田デンタルのみ設定'
+  const difference = item.narita - item.toyoDental
+  if (difference === 0) return '同額'
+  if (difference < 0) return `成田デンタルが${numberFormat.format(Math.abs(difference))}円安い`
+  return `東洋デンタルが${numberFormat.format(difference)}円安い`
 }
 
 function PriceComparison() {
-  const bestOrTied = vendorItems.filter((item) => {
-    const minimum = vendorMinimum(item)
-    return minimum !== null && item.adopted <= minimum
-  }).length
-  const maximumGap = Math.max(...vendorItems.map((item) => {
-    const minimum = vendorMinimum(item)
-    return minimum === null ? 0 : Math.abs(item.adopted - minimum)
-  }))
+  const naritaPriced = vendorItems.filter((item) => item.narita !== null).length
+  const toyoPriced = vendorItems.filter((item) => item.toyoDental !== null).length
   const chartRows = vendorItems.map((item) => ({
     ...item,
     label: `${item.category.replace('CAD/CAM', 'CAD')} ${item.product}`,
@@ -149,15 +142,15 @@ function PriceComparison() {
         <div>
           <p className="section-kicker">OUTSOURCE PRICE BENCHMARK</p>
           <h2>外注単価比較</h2>
-          <p>実績再計算に使用する採用単価と、成田デンタル・東洋デンタルの料金を品目別に比較します。</p>
+          <p>実績再計算に使用する成田デンタル・東洋デンタルの料金を品目別に比較します。</p>
         </div>
         <span className="version-badge">単価基準 {vendorPriceComparison.version}</span>
       </section>
 
       <section className="comparison-kpi-grid" aria-label="単価比較サマリー">
-        <Card label="比較対象" value={`${vendorItems.length}品目`} note="CAD/CAM冠・インレー、ジルコニア" />
-        <Card label="採用単価が最安・同額" value={`${bestOrTied}品目`} note="比較先の最安単価に対して" tone="green" />
-        <Card label="1本あたり最大差" value={formatYen(maximumGap)} note="採用単価と比較先最安の絶対差" tone="blue" />
+        <Card label="比較対象" value={`${vendorItems.length}品目`} note="CAD/CAM冠・インレー・アンレー、ジルコニア" />
+        <Card label="成田デンタル単価設定" value={`${naritaPriced}品目`} note="未提示の単価は未設定" tone="green" />
+        <Card label="東洋デンタル単価設定" value={`${toyoPriced}品目`} note="未提示の単価は未設定" tone="blue" />
       </section>
 
       <section className="chart-card chart-card--wide">
@@ -175,7 +168,6 @@ function PriceComparison() {
             <YAxis type="category" dataKey="label" width={150} tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
             <Tooltip formatter={(value, name) => [formatYen(Number(value)), String(name)]} />
             <Legend />
-            <Bar name="採用単価" dataKey="adopted" fill="#2563eb" radius={[0, 4, 4, 0]} />
             <Bar name="成田デンタル" dataKey="narita" fill="#0f766e" radius={[0, 4, 4, 0]} />
             <Bar name="東洋デンタル" dataKey="toyoDental" fill="#f59e0b" radius={[0, 4, 4, 0]} />
           </BarChart>
@@ -196,7 +188,6 @@ function PriceComparison() {
               <tr>
                 <th>品目</th>
                 <th>部位・種類</th>
-                <th className="numeric">採用単価</th>
                 <th className="numeric">成田デンタル</th>
                 <th className="numeric">東洋デンタル</th>
                 <th>比較結果</th>
@@ -204,14 +195,13 @@ function PriceComparison() {
             </thead>
             <tbody>
               {vendorItems.map((item) => {
-                const minimum = Math.min(item.adopted, ...[item.narita, item.toyoDental].filter((value): value is number => value !== null))
+                const minimum = vendorMinimum(item)
                 return (
                   <tr key={`${item.category}-${item.product}`}>
                     <td>{item.category}</td>
                     <td>{item.product}</td>
-                    <td className={item.adopted === minimum ? 'numeric best-price' : 'numeric'}>{formatYen(item.adopted)}</td>
-                    <td className={item.narita === minimum ? 'numeric best-price' : 'numeric'}>{formatYen(item.narita)}</td>
-                    <td className={item.toyoDental === minimum ? 'numeric best-price' : 'numeric'}>{formatYen(item.toyoDental)}</td>
+                    <td className={minimum !== null && item.narita === minimum ? 'numeric best-price' : 'numeric'}>{formatYen(item.narita)}</td>
+                    <td className={minimum !== null && item.toyoDental === minimum ? 'numeric best-price' : 'numeric'}>{formatYen(item.toyoDental)}</td>
                     <td><span className="comparison-result">{comparisonResult(item)}</span></td>
                   </tr>
                 )
@@ -275,7 +265,7 @@ function App() {
   const [error, setError] = useState('')
   const [view, setView] = useState<DashboardView>('performance')
   const [basis, setBasis] = useState<DateBasis>('date')
-  const [priceSource, setPriceSource] = useState<OutsourcePriceSource>('adopted')
+  const [priceSource, setPriceSource] = useState<OutsourcePriceSource>('narita')
   const [range, setRange] = useState('last12')
   const [majorTypes, setMajorTypes] = useState<Set<MajorType>>(new Set(['CAD', 'Zr', 'Other']))
   const [detailType, setDetailType] = useState('all')
@@ -350,7 +340,7 @@ function App() {
 
   function resetFilters() {
     setBasis('date')
-    setPriceSource('adopted')
+    setPriceSource('narita')
     setRange('last12')
     setMajorTypes(new Set(['CAD', 'Zr', 'Other']))
     setDetailType('all')
@@ -455,7 +445,7 @@ function App() {
         <fieldset className="filter-field filter-field--price-source">
           <legend>外注価格</legend>
           <div className="segmented segmented--vendor">
-            {(['adopted', 'narita', 'toyoDental'] as OutsourcePriceSource[]).map((source) => (
+            {(['narita', 'toyoDental'] as OutsourcePriceSource[]).map((source) => (
               <button
                 key={source}
                 type="button"
