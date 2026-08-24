@@ -159,7 +159,7 @@ function addAggregate(dateBasis, isoDate, unit) {
   if (!isoDate) return
   const month = isoDate.slice(0, 7)
   const key = [dateBasis, month, unit.majorType, unit.detailType].join('|')
-  const price = priceMaster.prices[unit.majorType]
+  const price = priceMaster.details[unit.detailType] ?? priceMaster.defaults[unit.majorType]
   const isFuture = isoDate > asOf
 
   if (!aggregates.has(key)) {
@@ -171,9 +171,9 @@ function addAggregate(dateBasis, isoDate, unit) {
       units: 0,
       futureUnits: 0,
       internalCost: price ? 0 : null,
-      externalLow: price ? 0 : null,
-      externalMid: price ? 0 : null,
-      externalHigh: price ? 0 : null,
+      externalLow: price?.external.adopted !== null && price?.external.adopted !== undefined ? 0 : null,
+      externalMid: price?.external.narita !== null && price?.external.narita !== undefined ? 0 : null,
+      externalHigh: price?.external.toyoDental !== null && price?.external.toyoDental !== undefined ? 0 : null,
       isPartialMonth: month === asOfMonth,
       isFutureMonth: month > asOfMonth,
     })
@@ -184,9 +184,9 @@ function addAggregate(dateBasis, isoDate, unit) {
   if (isFuture) target.futureUnits += 1
   if (price) {
     target.internalCost += price.internal
-    target.externalLow += price.external.low
-    target.externalMid += price.external.mid
-    target.externalHigh += price.external.high
+    if (target.externalLow !== null) target.externalLow += price.external.adopted
+    if (target.externalMid !== null) target.externalMid += price.external.narita
+    if (target.externalHigh !== null) target.externalHigh += price.external.toyoDental
   }
 }
 
@@ -220,7 +220,10 @@ const dashboard = {
     typeMasterVersion: typeMaster.version,
     priceMasterVersion: priceMaster.version,
   },
-  priceMaster: priceMaster.prices,
+  priceMaster: {
+    defaults: priceMaster.defaults,
+    details: priceMaster.details,
+  },
   monthly,
 }
 

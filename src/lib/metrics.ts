@@ -1,13 +1,13 @@
-import type { MonthlyAggregate, Scenario } from '../types'
+import type { MonthlyAggregate, OutsourcePriceSource } from '../types'
 
-export function externalAmount(row: MonthlyAggregate, scenario: Scenario) {
-  if (scenario === 'low') return row.externalLow
-  if (scenario === 'high') return row.externalHigh
-  return row.externalMid
+export function externalAmount(row: MonthlyAggregate, source: OutsourcePriceSource) {
+  if (source === 'narita') return row.externalMid
+  if (source === 'toyoDental') return row.externalHigh
+  return row.externalLow
 }
 
-export function savingsAmount(row: MonthlyAggregate, scenario: Scenario) {
-  const external = externalAmount(row, scenario)
+export function savingsAmount(row: MonthlyAggregate, source: OutsourcePriceSource) {
+  const external = externalAmount(row, source)
   if (external === null || row.internalCost === null) return null
   return external - row.internalCost
 }

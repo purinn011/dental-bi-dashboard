@@ -10,8 +10,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { externalAmount, formatCompactYen, formatMonth, formatYen, savingsAmount, sumNullable } from './lib/metrics'
-import type { DashboardData, DateBasis, MajorType, MonthlyAggregate, Scenario } from './types'
+import { externalAmount, formatMonth, formatYen, savingsAmount, sumNullable } from './lib/metrics'
+import vendorPriceComparison from '../config/vendor-price-comparison.json'
+import type { DashboardData, DashboardView, DateBasis, MajorType, MonthlyAggregate, OutsourcePriceSource } from './types'
 
 const COLORS: Record<MajorType, string> = {
   CAD: '#2563eb',
@@ -25,15 +26,15 @@ const TYPE_LABELS: Record<MajorType, string> = {
   Other: 'その他',
 }
 
-const SCENARIO_LABELS: Record<Scenario, string> = {
-  low: '保守',
-  mid: '標準',
-  high: '上限',
-}
-
 const BASIS_LABELS: Record<DateBasis, string> = {
   date: '登録日ベース',
   setDate: 'セット日ベース（予定を含む）',
+}
+
+const OUTSOURCE_PRICE_LABELS: Record<OutsourcePriceSource, string> = {
+  adopted: '採用単価',
+  narita: '成田デンタル',
+  toyoDental: '東洋デンタル',
 }
 
 const numberFormat = new Intl.NumberFormat('ja-JP')
@@ -81,7 +82,7 @@ function buildMonthRows(rows: MonthlyAggregate[]): MonthChartRow[] {
   return [...grouped.values()].sort((a, b) => a.month.localeCompare(b.month))
 }
 
-function buildAmountRows(rows: MonthlyAggregate[], scenario: Scenario): AmountChartRow[] {
+function buildAmountRows(rows: MonthlyAggregate[], priceSource: OutsourcePriceSource): AmountChartRow[] {
   const grouped = new Map<string, AmountChartRow>()
   for (const row of rows) {
     if (!grouped.has(row.month)) {
@@ -94,11 +95,138 @@ function buildAmountRows(rows: MonthlyAggregate[], scenario: Scenario): AmountCh
       })
     }
     const target = grouped.get(row.month)!
-    target.internal += row.internalCost ?? 0
-    target.external += externalAmount(row, scenario) ?? 0
-    target.savings += savingsAmount(row, scenario) ?? 0
+    const external = externalAmount(row, priceSource)
+    if (external !== null && row.internalCost !== null) {
+      target.internal += row.internalCost
+      target.external += external
+      target.savings += external - row.internalCost
+    }
   }
   return [...grouped.values()].sort((a, b) => a.month.localeCompare(b.month))
+}
+
+interface VendorPriceItem {
+  category: string
+  product: string
+  adopted: number
+  narita: number | null
+  toyoDental: number | null
+}
+
+const vendorItems = vendorPriceComparison.items as VendorPriceItem[]
+
+function vendorMinimum(item: VendorPriceItem) {
+  const values = [item.narita, item.toyoDental].filter((value): value is number => value !== null)
+  return values.length ? Math.min(...values) : null
+}
+
+function comparisonResult(item: VendorPriceItem) {
+  const minimum = vendorMinimum(item)
+  if (minimum === null) return '比較先未設定'
+  const difference = item.adopted - minimum
+  if (difference === 0) return '最安と同額'
+  if (difference < 0) return `採用単価が${numberFormat.format(Math.abs(difference))}円安い`
+  return `比較先が${numberFormat.format(difference)}円安い`
+}
+
+function PriceComparison() {
+  const bestOrTied = vendorItems.filter((item) => {
+    const minimum = vendorMinimum(item)
+    return minimum !== null && item.adopted <= minimum
+  }).length
+  const maximumGap = Math.max(...vendorItems.map((item) => {
+    const minimum = vendorMinimum(item)
+    return minimum === null ? 0 : Math.abs(item.adopted - minimum)
+  }))
+  const chartRows = vendorItems.map((item) => ({
+    ...item,
+    label: `${item.category.replace('CAD/CAM', 'CAD')} ${item.product}`,
+  }))
+
+  return (
+    <>
+      <section className="comparison-intro">
+        <div>
+          <p className="section-kicker">OUTSOURCE PRICE BENCHMARK</p>
+          <h2>外注単価比較</h2>
+          <p>実績再計算に使用する採用単価と、成田デンタル・東洋デンタルの料金を品目別に比較します。</p>
+        </div>
+        <span className="version-badge">単価基準 {vendorPriceComparison.version}</span>
+      </section>
+
+      <section className="comparison-kpi-grid" aria-label="単価比較サマリー">
+        <Card label="比較対象" value={`${vendorItems.length}品目`} note="CAD/CAM冠・インレー、ジルコニア" />
+        <Card label="採用単価が最安・同額" value={`${bestOrTied}品目`} note="比較先の最安単価に対して" tone="green" />
+        <Card label="1本あたり最大差" value={formatYen(maximumGap)} note="採用単価と比較先最安の絶対差" tone="blue" />
+      </section>
+
+      <section className="chart-card chart-card--wide">
+        <div className="section-heading">
+          <div>
+            <p className="section-kicker">PRICE BY PRODUCT</p>
+            <h2>品目別 外注単価</h2>
+          </div>
+          <p>未提示の単価は表示していません</p>
+        </div>
+        <ResponsiveContainer width="100%" height={390}>
+          <BarChart data={chartRows} layout="vertical" margin={{ top: 8, right: 22, left: 72, bottom: 0 }} accessibilityLayer>
+            <CartesianGrid stroke="#e8edf4" horizontal={false} />
+            <XAxis type="number" tickFormatter={(value) => `${numberFormat.format(Number(value))}円`} tickLine={false} axisLine={false} />
+            <YAxis type="category" dataKey="label" width={150} tickLine={false} axisLine={false} tick={{ fontSize: 11 }} />
+            <Tooltip formatter={(value, name) => [formatYen(Number(value)), String(name)]} />
+            <Legend />
+            <Bar name="採用単価" dataKey="adopted" fill="#2563eb" radius={[0, 4, 4, 0]} />
+            <Bar name="成田デンタル" dataKey="narita" fill="#0f766e" radius={[0, 4, 4, 0]} />
+            <Bar name="東洋デンタル" dataKey="toyoDental" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </section>
+
+      <section className="table-card">
+        <div className="section-heading">
+          <div>
+            <p className="section-kicker">PRICE DETAIL</p>
+            <h2>比較単価一覧</h2>
+          </div>
+          <p>税込・連結料等の条件は各社へ要確認</p>
+        </div>
+        <div className="table-scroll">
+          <table className="comparison-table">
+            <thead>
+              <tr>
+                <th>品目</th>
+                <th>部位・種類</th>
+                <th className="numeric">採用単価</th>
+                <th className="numeric">成田デンタル</th>
+                <th className="numeric">東洋デンタル</th>
+                <th>比較結果</th>
+              </tr>
+            </thead>
+            <tbody>
+              {vendorItems.map((item) => {
+                const minimum = Math.min(item.adopted, ...[item.narita, item.toyoDental].filter((value): value is number => value !== null))
+                return (
+                  <tr key={`${item.category}-${item.product}`}>
+                    <td>{item.category}</td>
+                    <td>{item.product}</td>
+                    <td className={item.adopted === minimum ? 'numeric best-price' : 'numeric'}>{formatYen(item.adopted)}</td>
+                    <td className={item.narita === minimum ? 'numeric best-price' : 'numeric'}>{formatYen(item.narita)}</td>
+                    <td className={item.toyoDental === minimum ? 'numeric best-price' : 'numeric'}>{formatYen(item.toyoDental)}</td>
+                    <td><span className="comparison-result">{comparisonResult(item)}</span></td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="source-notes" aria-label="単価比較の注記">
+        <strong>比較データの注意</strong>
+        <ul>{vendorPriceComparison.notes.map((note) => <li key={note}>{note}</li>)}</ul>
+      </section>
+    </>
+  )
 }
 
 function getRangeMonths(months: string[], range: string) {
@@ -145,8 +273,9 @@ function ErrorState({ message }: { message: string }) {
 function App() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [error, setError] = useState('')
+  const [view, setView] = useState<DashboardView>('performance')
   const [basis, setBasis] = useState<DateBasis>('date')
-  const [scenario, setScenario] = useState<Scenario>('mid')
+  const [priceSource, setPriceSource] = useState<OutsourcePriceSource>('adopted')
   const [range, setRange] = useState('last12')
   const [majorTypes, setMajorTypes] = useState<Set<MajorType>>(new Set(['CAD', 'Zr', 'Other']))
   const [detailType, setDetailType] = useState('all')
@@ -182,7 +311,7 @@ function App() {
   [filteredRows, selectedMonth])
 
   const monthRows = useMemo(() => buildMonthRows(filteredRows), [filteredRows])
-  const amountRows = useMemo(() => buildAmountRows(filteredRows, scenario), [filteredRows, scenario])
+  const amountRows = useMemo(() => buildAmountRows(filteredRows, priceSource), [filteredRows, priceSource])
 
   const typeRows = useMemo(() => {
     const grouped = new Map<string, { detailType: string; majorType: MajorType; units: number; amount: number }>()
@@ -192,22 +321,22 @@ function App() {
       }
       const target = grouped.get(row.detailType)!
       target.units += row.units
-      target.amount += savingsAmount(row, scenario) ?? 0
+      target.amount += savingsAmount(row, priceSource) ?? 0
     }
     return [...grouped.values()].sort((a, b) => b.units - a.units).slice(0, 10)
-  }, [focusedRows, scenario])
+  }, [focusedRows, priceSource])
 
   const totals = useMemo(() => {
     const units = focusedRows.reduce((sum, row) => sum + row.units, 0)
-    const pricedUnits = focusedRows.reduce((sum, row) => sum + (row.internalCost === null ? 0 : row.units), 0)
+    const pricedUnits = focusedRows.reduce((sum, row) => sum + (externalAmount(row, priceSource) === null ? 0 : row.units), 0)
+    const internalPricedUnits = focusedRows.reduce((sum, row) => sum + (row.internalCost === null ? 0 : row.units), 0)
     const internal = sumNullable(focusedRows.map((row) => row.internalCost))
-    const external = sumNullable(focusedRows.map((row) => externalAmount(row, scenario)))
-    const savings = sumNullable(focusedRows.map((row) => savingsAmount(row, scenario)))
-    const externalLow = sumNullable(focusedRows.map((row) => row.externalLow))
-    const externalHigh = sumNullable(focusedRows.map((row) => row.externalHigh))
+    const comparisonInternal = sumNullable(focusedRows.map((row) => externalAmount(row, priceSource) === null ? null : row.internalCost))
+    const external = sumNullable(focusedRows.map((row) => externalAmount(row, priceSource)))
+    const savings = sumNullable(focusedRows.map((row) => savingsAmount(row, priceSource)))
     const savingsRate = external && savings !== null ? Math.round((savings / external) * 1000) / 10 : null
-    return { units, pricedUnits, internal, external, savings, externalLow, externalHigh, savingsRate }
-  }, [focusedRows, scenario])
+    return { units, pricedUnits, internalPricedUnits, internal, comparisonInternal, external, savings, savingsRate }
+  }, [focusedRows, priceSource])
 
   function toggleMajor(type: MajorType) {
     setMajorTypes((current) => {
@@ -221,7 +350,7 @@ function App() {
 
   function resetFilters() {
     setBasis('date')
-    setScenario('mid')
+    setPriceSource('adopted')
     setRange('last12')
     setMajorTypes(new Set(['CAD', 'Zr', 'Other']))
     setDetailType('all')
@@ -236,6 +365,7 @@ function App() {
     ? `${formatMonth(selectedMonth)}を選択中`
     : `${monthRows.length}か月を表示`
   const unpricedUnits = totals.units - totals.pricedUnits
+  const internalUnpricedUnits = totals.units - totals.internalPricedUnits
 
   return (
     <div className="app-shell">
@@ -243,7 +373,7 @@ function App() {
         <div>
           <p className="eyebrow">DENTAL LAB PERFORMANCE</p>
           <h1>院内補綴制作ダッシュボード</h1>
-          <p className="header-copy">制作本数と院内制作による費用効果を、月・種類・価格シナリオで確認します。</p>
+          <p className="header-copy">制作本数と院内制作による費用効果を月・種類別に確認し、外注単価を比較します。</p>
         </div>
         <div className="header-meta">
           <span className="status-dot" />
@@ -253,6 +383,26 @@ function App() {
           </div>
         </div>
       </header>
+
+      <nav className="view-tabs" aria-label="ダッシュボード表示">
+        <button
+          type="button"
+          aria-current={view === 'performance' ? 'page' : undefined}
+          onClick={() => setView('performance')}
+        >
+          実績ダッシュボード
+        </button>
+        <button
+          type="button"
+          aria-current={view === 'priceComparison' ? 'page' : undefined}
+          onClick={() => setView('priceComparison')}
+        >
+          外注単価比較
+        </button>
+      </nav>
+
+      {view === 'performance' ? (
+        <>
 
       <section className="quality-banner" aria-label="データ品質情報">
         <div className="quality-mark">i</div>
@@ -302,12 +452,17 @@ function App() {
             {detailOptions.map((type) => <option key={type} value={type}>{type}</option>)}
           </select>
         </div>
-        <fieldset className="filter-field filter-field--scenario">
+        <fieldset className="filter-field filter-field--price-source">
           <legend>外注価格</legend>
-          <div className="segmented">
-            {(['low', 'mid', 'high'] as Scenario[]).map((value) => (
-              <button key={value} type="button" aria-pressed={scenario === value} onClick={() => setScenario(value)}>
-                {SCENARIO_LABELS[value]}
+          <div className="segmented segmented--vendor">
+            {(['adopted', 'narita', 'toyoDental'] as OutsourcePriceSource[]).map((source) => (
+              <button
+                key={source}
+                type="button"
+                aria-pressed={priceSource === source}
+                onClick={() => setPriceSource(source)}
+              >
+                {OUTSOURCE_PRICE_LABELS[source]}
               </button>
             ))}
           </div>
@@ -331,13 +486,13 @@ function App() {
         <Card
           label="院内原価実績"
           value={formatYen(totals.internal)}
-          note={unpricedUnits ? `価格未設定 ${unpricedUnits}本を除外` : '材料費＋労務費の標準原価'}
+          note={internalUnpricedUnits ? `院内原価未設定 ${internalUnpricedUnits}本を除外` : '材料費＋労務費の標準原価'}
           tone="blue"
         />
         <Card
-          label={`外注相当額（${SCENARIO_LABELS[scenario]}）`}
+          label={`外注相当額（${OUTSOURCE_PRICE_LABELS[priceSource]}）`}
           value={formatYen(totals.external)}
-          note={`${formatYen(totals.externalLow)} 〜 ${formatYen(totals.externalHigh)}`}
+          note={unpricedUnits ? `単価未設定 ${unpricedUnits}本を除外` : '品目別の外注単価で再計算'}
         />
         <Card
           label="推定削減額"
@@ -386,7 +541,7 @@ function App() {
                   <p className="section-kicker">COST IMPACT</p>
                   <h2>月別 金額推移</h2>
                 </div>
-                <span className="scenario-badge">{SCENARIO_LABELS[scenario]}</span>
+                <span className="scenario-badge">{OUTSOURCE_PRICE_LABELS[priceSource]}</span>
               </div>
               <ResponsiveContainer width="100%" height={320}>
                 <BarChart data={amountRows} margin={{ top: 12, right: 4, left: 4, bottom: 0 }} accessibilityLayer>
@@ -395,7 +550,7 @@ function App() {
                   <YAxis tickFormatter={(value) => `${Math.round(Number(value) / 10_000)}万`} tickLine={false} axisLine={false} width={54} />
                   <Tooltip labelFormatter={(_, payload) => payload?.[0]?.payload?.month ? formatMonth(payload[0].payload.month) : ''} formatter={(value, name) => [formatYen(Number(value ?? 0)), String(name)]} />
                   <Legend />
-                  <Bar name="院内原価" dataKey="internal" fill="#94a3b8" radius={[3, 3, 0, 0]} />
+                  <Bar name="比較対象院内原価" dataKey="internal" fill="#94a3b8" radius={[3, 3, 0, 0]} />
                   <Bar name="外注相当額" dataKey="external" fill="#93c5fd" radius={[3, 3, 0, 0]} />
                   <Bar name="推定削減額" dataKey="savings" fill="#16a34a" radius={[3, 3, 0, 0]} />
                 </BarChart>
@@ -440,7 +595,7 @@ function App() {
                     <th>大分類</th>
                     <th>詳細種類</th>
                     <th className="numeric">本数</th>
-                    <th className="numeric">院内原価</th>
+                    <th className="numeric">比較対象院内原価</th>
                     <th className="numeric">外注相当額</th>
                     <th className="numeric">推定削減額</th>
                     <th>状態</th>
@@ -455,9 +610,9 @@ function App() {
                         <td><span className="type-pill" style={{ '--pill-color': COLORS[row.majorType] } as React.CSSProperties}>{TYPE_LABELS[row.majorType]}</span></td>
                         <td>{row.detailType}</td>
                         <td className="numeric">{numberFormat.format(row.units)}本</td>
-                        <td className="numeric">{formatYen(row.internalCost)}</td>
-                        <td className="numeric">{formatYen(externalAmount(row, scenario))}</td>
-                        <td className="numeric savings-cell">{formatYen(savingsAmount(row, scenario))}</td>
+                        <td className="numeric">{formatYen(externalAmount(row, priceSource) === null ? null : row.internalCost)}</td>
+                        <td className="numeric">{formatYen(externalAmount(row, priceSource))}</td>
+                        <td className="numeric savings-cell">{formatYen(savingsAmount(row, priceSource))}</td>
                         <td>
                           {row.isFutureMonth ? <span className="status status--future">予定</span> : row.isPartialMonth ? <span className="status status--partial">月途中</span> : <span className="status">確定月</span>}
                         </td>
@@ -468,7 +623,7 @@ function App() {
                   <tr>
                     <th colSpan={3}>選択条件 合計</th>
                     <td className="numeric">{numberFormat.format(totals.units)}本</td>
-                    <td className="numeric">{formatYen(totals.internal)}</td>
+                    <td className="numeric">{formatYen(totals.comparisonInternal)}</td>
                     <td className="numeric">{formatYen(totals.external)}</td>
                     <td className="numeric savings-cell">{formatYen(totals.savings)}</td>
                     <td>—</td>
@@ -479,10 +634,23 @@ function App() {
           </section>
         </>
       )}
+        </>
+      ) : (
+        <PriceComparison />
+      )}
 
       <footer>
-        <p>集計基準日 {data.meta.asOf} ／ 価格マスター {data.meta.priceMasterVersion} ／ 実績金額は概算です</p>
-        <p>院内原価には設備償却・再製作・管理費を含みません。</p>
+        {view === 'performance' ? (
+          <>
+            <p>集計基準日 {data.meta.asOf} ／ 価格マスター {data.meta.priceMasterVersion} ／ 実績金額は概算です</p>
+            <p>院内原価には設備償却・再製作・管理費を含みません。</p>
+          </>
+        ) : (
+          <>
+            <p>比較単価マスター {vendorPriceComparison.version}</p>
+            <p>消費税・連結料・ブロック条件・再製作条件は各社へ確認してください。</p>
+          </>
+        )}
       </footer>
     </div>
   )

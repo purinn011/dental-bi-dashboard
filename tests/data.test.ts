@@ -42,4 +42,32 @@ describe('generated dashboard data', () => {
     expect(others.length).toBeGreaterThan(0)
     expect(others.every((row) => row.internalCost === null && row.externalMid === null)).toBe(true)
   })
+
+  it('applies the revised fixed external prices by detail type', () => {
+    const expectedPrices = new Map([
+      ['CADインレー（小臼歯）', 7500],
+      ['CADインレー（大臼歯）', 7500],
+      ['CAD冠（前歯）', 9000],
+      ['CAD冠（小臼歯）', 9000],
+      ['CAD冠（大臼歯）', 9000],
+      ['Zrインレー', 12000],
+      ['Zrクラウン', 12000],
+    ])
+
+    for (const [detailType, unitPrice] of expectedPrices) {
+      const rows = data.monthly.filter((row) => row.detailType === detailType)
+      expect(rows.length).toBeGreaterThan(0)
+      expect(rows.every((row) => row.externalLow === row.units * unitPrice)).toBe(true)
+    }
+  })
+
+  it('stores vendor prices without converting missing prices to zero', () => {
+    const smallInlays = data.monthly.filter((row) => row.detailType === 'CADインレー（小臼歯）')
+    expect(smallInlays.every((row) => row.externalMid === row.units * 6560)).toBe(true)
+    expect(smallInlays.every((row) => row.externalHigh === row.units * 7500)).toBe(true)
+
+    const zirconiaCrowns = data.monthly.filter((row) => row.detailType === 'Zrクラウン')
+    expect(zirconiaCrowns.every((row) => row.externalMid === null)).toBe(true)
+    expect(zirconiaCrowns.every((row) => row.externalHigh === row.units * 13000)).toBe(true)
+  })
 })

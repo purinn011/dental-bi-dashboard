@@ -1,14 +1,64 @@
 {
-  "version": "2026-08-22",
+  "version": "2026-08-24",
   "currency": "JPY",
-  "prices": {
+  "defaults": {
     "CAD": {
       "internal": 1500,
-      "external": { "low": 7500, "mid": 8500, "high": 9500 }
+      "external": { "adopted": 9000, "narita": null, "toyoDental": null }
     },
     "Zr": {
       "internal": 4580,
-      "external": { "low": 9000, "mid": 10500, "high": 12000 }
+      "external": { "adopted": 12000, "narita": null, "toyoDental": 13000 }
+    }
+  },
+  "details": {
+    "CADインレー（小臼歯）": {
+      "internal": 1500,
+      "external": { "adopted": 7500, "narita": 6560, "toyoDental": 7500 }
+    },
+    "CADインレー（大臼歯）": {
+      "internal": 1500,
+      "external": { "adopted": 7500, "narita": 8500, "toyoDental": 8000 }
+    },
+    "CADインレー（部位未指定）": {
+      "internal": 1500,
+      "external": { "adopted": 7500, "narita": null, "toyoDental": null }
+    },
+    "CADアンレー": {
+      "internal": 1500,
+      "external": { "adopted": 7500, "narita": null, "toyoDental": null }
+    },
+    "CAD冠（前歯）": {
+      "internal": 1500,
+      "external": { "adopted": 9000, "narita": 9500, "toyoDental": 9000 }
+    },
+    "CAD冠（小臼歯）": {
+      "internal": 1500,
+      "external": { "adopted": 9000, "narita": 7500, "toyoDental": 7500 }
+    },
+    "CAD冠（大臼歯）": {
+      "internal": 1500,
+      "external": { "adopted": 9000, "narita": 9000, "toyoDental": 9000 }
+    },
+    "CAD（部位未指定）": {
+      "internal": 1500,
+      "external": { "adopted": 9000, "narita": null, "toyoDental": null }
+    },
+    "Zrインレー": {
+      "internal": 4580,
+      "external": { "adopted": 12000, "narita": null, "toyoDental": 13000 }
+    },
+    "Zrアンレー": {
+      "internal": 4580,
+      "external": { "adopted": 12000, "narita": null, "toyoDental": null }
+    },
+    "Zrクラウン": {
+      "internal": 4580,
+      "external": { "adopted": 12000, "narita": null, "toyoDental": 13000 }
+    },
+    "Zr（種類未指定）": {
+      "internal": 4580,
+      "external": { "adopted": 12000, "narita": null, "toyoDental": null }
     }
   }
 }
