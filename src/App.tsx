@@ -148,7 +148,7 @@ function PriceComparison() {
       </section>
 
       <section className="comparison-kpi-grid" aria-label="単価比較サマリー">
-        <Card label="比較対象" value={`${vendorItems.length}品目`} note="CAD/CAM冠・インレー・アンレー、ジルコニア" />
+        <Card label="比較対象" value={`${vendorItems.length}品目`} note="CAD/CAM、ジルコニア、e.max" />
         <Card label="成田デンタル単価設定" value={`${naritaPriced}品目`} note="未提示の単価は未設定" tone="green" />
         <Card label="東洋デンタル単価設定" value={`${toyoPriced}品目`} note="未提示の単価は未設定" tone="blue" />
       </section>
@@ -323,9 +323,14 @@ function App() {
     const internal = sumNullable(focusedRows.map((row) => row.internalCost))
     const comparisonInternal = sumNullable(focusedRows.map((row) => externalAmount(row, priceSource) === null ? null : row.internalCost))
     const external = sumNullable(focusedRows.map((row) => externalAmount(row, priceSource)))
+    const comparableExternal = sumNullable(focusedRows.map((row) =>
+      externalAmount(row, priceSource) !== null && row.internalCost !== null
+        ? externalAmount(row, priceSource)
+        : null,
+    ))
     const savings = sumNullable(focusedRows.map((row) => savingsAmount(row, priceSource)))
-    const savingsRate = external && savings !== null ? Math.round((savings / external) * 1000) / 10 : null
-    return { units, pricedUnits, internalPricedUnits, internal, comparisonInternal, external, savings, savingsRate }
+    const savingsRate = comparableExternal && savings !== null ? Math.round((savings / comparableExternal) * 1000) / 10 : null
+    return { units, pricedUnits, internalPricedUnits, internal, comparisonInternal, external, comparableExternal, savings, savingsRate }
   }, [focusedRows, priceSource])
 
   function toggleMajor(type: MajorType) {
@@ -356,6 +361,9 @@ function App() {
     : `${monthRows.length}か月を表示`
   const unpricedUnits = totals.units - totals.pricedUnits
   const internalUnpricedUnits = totals.units - totals.internalPricedUnits
+  const savingsExcludedUnits = focusedRows.reduce((sum, row) =>
+    sum + (externalAmount(row, priceSource) !== null && row.internalCost === null ? row.units : 0),
+  0)
 
   return (
     <div className="app-shell">
@@ -487,7 +495,11 @@ function App() {
         <Card
           label="推定削減額"
           value={formatYen(totals.savings)}
-          note={totals.savingsRate === null ? '算定不可' : `外注相当額比 ${totals.savingsRate}%`}
+          note={totals.savingsRate === null
+            ? '算定不可'
+            : savingsExcludedUnits
+              ? `院内原価未設定 ${savingsExcludedUnits}本を除外／比較可能額比 ${totals.savingsRate}%`
+              : `外注相当額比 ${totals.savingsRate}%`}
           tone="green"
         />
       </section>
@@ -527,11 +539,11 @@ function App() {
           <div className="chart-grid">
             <section className="chart-card">
               <div className="section-heading">
-                <div>
-                  <p className="section-kicker">COST IMPACT</p>
-                  <h2>月別 金額推移</h2>
-                </div>
-                <span className="scenario-badge">{OUTSOURCE_PRICE_LABELS[priceSource]}</span>
+              <div>
+                <p className="section-kicker">COST IMPACT</p>
+                <h2>月別 金額推移</h2>
+              </div>
+                <span className="scenario-badge">{OUTSOURCE_PRICE_LABELS[priceSource]}・院内原価設定済み</span>
               </div>
               <ResponsiveContainer width="100%" height={320}>
                 <BarChart data={amountRows} margin={{ top: 12, right: 4, left: 4, bottom: 0 }} accessibilityLayer>

@@ -37,10 +37,15 @@ describe('generated dashboard data', () => {
     }
   })
 
-  it('keeps Other rows unpriced instead of converting them to zero', () => {
-    const others = data.monthly.filter((row) => row.majorType === 'Other')
-    expect(others.length).toBeGreaterThan(0)
-    expect(others.every((row) => row.internalCost === null && row.externalNarita === null)).toBe(true)
+  it('prices e.max externally while preserving its missing internal cost', () => {
+    const emaxRows = data.monthly.filter((row) => row.detailType === 'e.max')
+    expect(emaxRows.length).toBeGreaterThan(0)
+    expect(emaxRows.every((row) => row.internalCost === null)).toBe(true)
+    expect(emaxRows.every((row) => row.externalNarita === row.units * 12000)).toBe(true)
+    expect(emaxRows.every((row) => row.externalToyoDental === row.units * 13000)).toBe(true)
+
+    const unpricedOthers = data.monthly.filter((row) => row.majorType === 'Other' && row.detailType !== 'e.max')
+    expect(unpricedOthers.every((row) => row.internalCost === null && row.externalNarita === null)).toBe(true)
   })
 
   it('stores vendor prices without converting missing prices to zero', () => {

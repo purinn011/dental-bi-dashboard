@@ -1,5 +1,5 @@
 {
-  "version": "2026-08-24.2",
+  "version": "2026-08-24.3",
   "currency": "JPY",
   "defaults": {
     "CAD": {
@@ -67,6 +67,10 @@
     "Zr（種類未指定）": {
       "internal": 4580,
       "external": { "narita": null, "toyoDental": null }
+    },
+    "e.max": {
+      "internal": null,
+      "external": { "narita": 12000, "toyoDental": 13000 }
     }
   }
 }
