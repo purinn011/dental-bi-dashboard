@@ -37,6 +37,7 @@ const OUTSOURCE_PRICE_LABELS: Record<OutsourcePriceSource, string> = {
 }
 
 const numberFormat = new Intl.NumberFormat('ja-JP')
+const DASHBOARD_DATA_VERSION = '2026-08-24.3'
 
 interface MonthChartRow {
   month: string
@@ -272,7 +273,7 @@ function App() {
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch(`${import.meta.env.BASE_URL}data/dashboard.json`)
+    fetch(`${import.meta.env.BASE_URL}data/dashboard.json?v=${DASHBOARD_DATA_VERSION}`)
       .then((response) => {
         if (!response.ok) throw new Error(`HTTP ${response.status}`)
         return response.json()
