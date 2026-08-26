@@ -37,7 +37,26 @@ const OUTSOURCE_PRICE_LABELS: Record<OutsourcePriceSource, string> = {
 }
 
 const numberFormat = new Intl.NumberFormat('ja-JP')
-const DASHBOARD_DATA_VERSION = '2026-08-24.4'
+const DASHBOARD_DATA_VERSION = '2026-08-26.1'
+
+function fiscalYearFromMonth(month: string) {
+  const year = Number(month.slice(0, 4))
+  return Number(month.slice(5, 7)) >= 4 ? year : year - 1
+}
+
+function fiscalYearLabel(year: number) {
+  return `${year}年度（${year}/4〜${year + 1}/3）`
+}
+
+function axisMonthLabel(month: string) {
+  return `${month.slice(2, 4)}/${Number(month.slice(5, 7))}`
+}
+
+function formatNumberRange(min: number | null, max: number | null, suffix: string) {
+  if (min === null || max === null) return '算定対象なし'
+  if (min === max) return `${numberFormat.format(min)}${suffix}`
+  return `${numberFormat.format(min)}〜${numberFormat.format(max)}${suffix}`
+}
 
 interface MonthChartRow {
   month: string
@@ -64,7 +83,7 @@ function buildMonthRows(rows: MonthlyAggregate[]): MonthChartRow[] {
     if (!grouped.has(row.month)) {
       grouped.set(row.month, {
         month: row.month,
-        monthLabel: `${Number(row.month.slice(5))}月`,
+        monthLabel: axisMonthLabel(row.month),
         CAD: 0,
         Zr: 0,
         Other: 0,
@@ -88,7 +107,7 @@ function buildAmountRows(rows: MonthlyAggregate[], priceSource: OutsourcePriceSo
     if (!grouped.has(row.month)) {
       grouped.set(row.month, {
         month: row.month,
-        monthLabel: `${Number(row.month.slice(5))}月`,
+        monthLabel: axisMonthLabel(row.month),
         internal: 0,
         external: 0,
         savings: 0,
@@ -220,10 +239,184 @@ function PriceComparison() {
   )
 }
 
+function InsuranceDashboard({ data, basis, onBasisChange }: {
+  data: DashboardData
+  basis: DateBasis
+  onBasisChange: (basis: DateBasis) => void
+}) {
+  const defaultFiscalYear = fiscalYearFromMonth(data.insuranceMaster.effectiveFrom)
+  const [insuranceRange, setInsuranceRange] = useState(`fy:${defaultFiscalYear}`)
+  const basisRows = useMemo(
+    () => data.monthly.filter((row) => row.dateBasis === basis),
+    [data, basis],
+  )
+  const months = useMemo(() => [...new Set(basisRows.map((row) => row.month))].sort(), [basisRows])
+  const fiscalYears = useMemo(
+    () => [...new Set(months.map(fiscalYearFromMonth))].sort((a, b) => a - b),
+    [months],
+  )
+  const rangeMonths = useMemo(() => getRangeMonths(months, insuranceRange), [months, insuranceRange])
+  const periodRows = useMemo(
+    () => basisRows.filter((row) => rangeMonths.has(row.month)),
+    [basisRows, rangeMonths],
+  )
+  const rows = useMemo(
+    () => periodRows.filter((row) => row.insuranceAmountMin !== null && row.insuranceAmountMax !== null),
+    [periodRows],
+  )
+  const monthlyRows = useMemo(() => {
+    const grouped = new Map<string, { month: string; monthLabel: string; units: number; amountMin: number; amountMax: number }>()
+    for (const row of rows) {
+      if (!grouped.has(row.month)) {
+        grouped.set(row.month, { month: row.month, monthLabel: axisMonthLabel(row.month), units: 0, amountMin: 0, amountMax: 0 })
+      }
+      const target = grouped.get(row.month)!
+      target.units += row.units
+      target.amountMin += row.insuranceAmountMin ?? 0
+      target.amountMax += row.insuranceAmountMax ?? 0
+    }
+    return [...grouped.values()].sort((a, b) => a.month.localeCompare(b.month))
+  }, [rows])
+  const totals = useMemo(() => {
+    const units = rows.reduce((sum, row) => sum + row.units, 0)
+    const pointsMin = rows.reduce((sum, row) => sum + (row.insurancePointsMin ?? 0), 0)
+    const pointsMax = rows.reduce((sum, row) => sum + (row.insurancePointsMax ?? 0), 0)
+    const amountMin = rows.reduce((sum, row) => sum + (row.insuranceAmountMin ?? 0), 0)
+    const amountMax = rows.reduce((sum, row) => sum + (row.insuranceAmountMax ?? 0), 0)
+    const internal = rows.reduce((sum, row) => sum + (row.internalCost ?? 0), 0)
+    return { units, pointsMin, pointsMax, amountMin, amountMax, internal }
+  }, [rows])
+  const excludedCadUnits = periodRows.reduce(
+    (sum, row) => sum + (row.majorType === 'CAD' && row.insuranceAmountMin === null ? row.units : 0),
+    0,
+  )
+
+  return (
+    <>
+      <section className="comparison-intro">
+        <div>
+          <p className="section-kicker">INSURANCE POINTS & REIMBURSEMENT</p>
+          <h2>保険点数・診療報酬</h2>
+          <p>月ごとの適用時期を判定し、CAD/CAM冠・インレーの点数と診療報酬額を下限〜上限で再計算します。</p>
+        </div>
+        <span className="version-badge">{data.insuranceMaster.schedule}・v{data.insuranceMaster.version}</span>
+      </section>
+
+      <section className="filter-panel filter-panel--insurance" aria-label="保険点数の表示条件">
+        <div className="filter-field">
+          <label htmlFor="insuranceBasis">日付基準</label>
+          <select id="insuranceBasis" value={basis} onChange={(event) => onBasisChange(event.target.value as DateBasis)}>
+            <option value="date">登録日ベース</option>
+            <option value="setDate">セット日ベース（予定含む）</option>
+          </select>
+        </div>
+        <div className="filter-field">
+          <label htmlFor="insuranceRange">対象年度</label>
+          <select id="insuranceRange" value={insuranceRange} onChange={(event) => setInsuranceRange(event.target.value)}>
+            {fiscalYears.map((year) => <option key={year} value={`fy:${year}`}>{fiscalYearLabel(year)}</option>)}
+          </select>
+        </div>
+        <div className="insurance-assumption">
+          <strong>算定前提</strong>
+          <span>光学印象 {data.insuranceMaster.assumptions.opticalImpression}点／装着材料 {data.insuranceMaster.assumptions.adhesiveMaterial}点／1点={data.insuranceMaster.pointValueYen}円</span>
+        </div>
+      </section>
+
+      <section className="kpi-grid" aria-label="保険点数サマリー">
+        <Card label="保険算定対象" value={`${numberFormat.format(totals.units)}本`} note={excludedCadUnits ? `点数未設定・適用前 ${numberFormat.format(excludedCadUnits)}本を除外` : 'CAD/CAM冠・インレー'} />
+        <Card label="保険点数" value={formatNumberRange(totals.units ? totals.pointsMin : null, totals.units ? totals.pointsMax : null, '点')} note="歯髄状態・材料区分による幅" tone="blue" />
+        <Card label="診療報酬額" value={formatNumberRange(totals.units ? totals.amountMin : null, totals.units ? totals.amountMax : null, '円')} note="保険点数×10円（患者負担額ではありません）" />
+        <Card label="報酬−院内原価" value={formatNumberRange(totals.units ? totals.amountMin - totals.internal : null, totals.units ? totals.amountMax - totals.internal : null, '円')} note="算定対象品目の標準院内原価との差" tone="green" />
+      </section>
+
+      {rows.length === 0 ? (
+        <section className="empty-card">
+          <h2>この年度は保険点数の適用対象外です</h2>
+          <p>{data.insuranceMaster.schedule}は{formatMonth(data.insuranceMaster.effectiveFrom)}以降にのみ適用し、過去年度へ遡及していません。</p>
+        </section>
+      ) : (
+        <>
+          <section className="chart-card chart-card--wide">
+            <div className="section-heading">
+              <div>
+                <p className="section-kicker">MONTHLY REIMBURSEMENT</p>
+                <h2>月別 診療報酬額</h2>
+              </div>
+              <p>条件不明分は下限〜上限で表示</p>
+            </div>
+            <ResponsiveContainer width="100%" height={340}>
+              <BarChart data={monthlyRows} margin={{ top: 16, right: 8, left: 4, bottom: 0 }} accessibilityLayer>
+                <CartesianGrid stroke="#e8edf4" vertical={false} />
+                <XAxis dataKey="monthLabel" tickLine={false} axisLine={false} />
+                <YAxis tickFormatter={(value) => `${Math.round(Number(value) / 10_000)}万`} tickLine={false} axisLine={false} width={54} />
+                <Tooltip labelFormatter={(_, payload) => payload?.[0]?.payload?.month ? formatMonth(payload[0].payload.month) : ''} formatter={(value, name) => [formatYen(Number(value ?? 0)), String(name)]} />
+                <Legend />
+                <Bar name="診療報酬 下限" dataKey="amountMin" fill="#60a5fa" radius={[4, 4, 0, 0]} />
+                <Bar name="診療報酬 上限" dataKey="amountMax" fill="#1d4ed8" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </section>
+
+          <section className="table-card">
+            <div className="section-heading">
+              <div>
+                <p className="section-kicker">INSURANCE DETAIL</p>
+                <h2>月・種類別 保険点数明細</h2>
+              </div>
+              <p>{rows.length}行</p>
+            </div>
+            <div className="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>月</th>
+                    <th>種類</th>
+                    <th className="numeric">本数</th>
+                    <th className="numeric">1本あたり点数</th>
+                    <th className="numeric">月額診療報酬</th>
+                    <th>精度</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...rows].sort((a, b) => b.month.localeCompare(a.month) || b.units - a.units).map((row) => {
+                    const definition = data.insuranceMaster.details[row.detailType]
+                    return (
+                      <tr key={`${row.month}-${row.dateBasis}-${row.detailType}-insurance`}>
+                        <td>{formatMonth(row.month)}</td>
+                        <td>{row.detailType}</td>
+                        <td className="numeric">{numberFormat.format(row.units)}本</td>
+                        <td className="numeric">{formatNumberRange(definition.pointsMin, definition.pointsMax, '点')}</td>
+                        <td className="numeric">{formatNumberRange(row.insuranceAmountMin, row.insuranceAmountMax, '円')}</td>
+                        <td>{definition.precision}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      )}
+
+      <section className="source-notes" aria-label="保険点数の注記">
+        <strong>算定上の注意</strong>
+        <ul>{data.insuranceMaster.notes.map((note) => <li key={note}>{note}</li>)}</ul>
+        <div className="source-links">
+          {data.insuranceMaster.sources.map((source) => <a key={source.url} href={source.url} target="_blank" rel="noreferrer">{source.label}</a>)}
+        </div>
+      </section>
+    </>
+  )
+}
+
 function getRangeMonths(months: string[], range: string) {
   if (range === 'all') return new Set(months)
   if (range === 'last12') return new Set(months.slice(-12))
-  return new Set(months.filter((month) => month.startsWith(range)))
+  if (range.startsWith('fy:')) {
+    const fiscalYear = Number(range.slice(3))
+    return new Set(months.filter((month) => fiscalYearFromMonth(month) === fiscalYear))
+  }
+  return new Set()
 }
 
 function Card({ label, value, note, tone = 'default' }: {
@@ -284,7 +477,10 @@ function App() {
 
   const basisRows = useMemo(() => data?.monthly.filter((row) => row.dateBasis === basis) ?? [], [data, basis])
   const months = useMemo(() => [...new Set(basisRows.map((row) => row.month))].sort(), [basisRows])
-  const years = useMemo(() => [...new Set(months.map((month) => month.slice(0, 4)))], [months])
+  const fiscalYears = useMemo(
+    () => [...new Set(months.map(fiscalYearFromMonth))].sort((a, b) => a - b),
+    [months],
+  )
   const rangeMonths = useMemo(() => getRangeMonths(months, range), [months, range])
   const detailOptions = useMemo(() => [...new Set(
     basisRows.filter((row) => majorTypes.has(row.majorType)).map((row) => row.detailType),
@@ -393,6 +589,13 @@ function App() {
         </button>
         <button
           type="button"
+          aria-current={view === 'insurance' ? 'page' : undefined}
+          onClick={() => setView('insurance')}
+        >
+          保険点数・診療報酬
+        </button>
+        <button
+          type="button"
           aria-current={view === 'priceComparison' ? 'page' : undefined}
           onClick={() => setView('priceComparison')}
         >
@@ -424,7 +627,7 @@ function App() {
           <select id="range" value={range} onChange={(event) => { setRange(event.target.value); setSelectedMonth(null) }}>
             <option value="last12">直近12か月</option>
             <option value="all">全期間</option>
-            {years.map((year) => <option key={year} value={year}>{year}年</option>)}
+            {fiscalYears.map((year) => <option key={year} value={`fy:${year}`}>{fiscalYearLabel(year)}</option>)}
           </select>
         </div>
         <fieldset className="filter-field filter-field--types">
@@ -525,7 +728,7 @@ function App() {
               <ResponsiveContainer width="100%" height={340}>
                 <BarChart data={monthRows} margin={{ top: 18, right: 8, left: -12, bottom: 0 }} onClick={(event: any) => event?.activeLabel && setSelectedMonth(event.activeLabel)} accessibilityLayer>
                   <CartesianGrid stroke="#e8edf4" vertical={false} />
-                  <XAxis dataKey="month" tickFormatter={(value) => `${Number(String(value).slice(5))}月`} tickLine={false} axisLine={false} />
+                  <XAxis dataKey="month" tickFormatter={(value) => axisMonthLabel(String(value))} tickLine={false} axisLine={false} />
                   <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
                   <Tooltip labelFormatter={(value) => formatMonth(String(value))} formatter={(value, name) => [`${numberFormat.format(Number(value ?? 0))}本`, TYPE_LABELS[name as MajorType] ?? String(name)]} />
                   <Legend formatter={(value) => TYPE_LABELS[value as MajorType] ?? value} />
@@ -638,6 +841,8 @@ function App() {
         </>
       )}
         </>
+      ) : view === 'insurance' ? (
+        <InsuranceDashboard data={data} basis={basis} onBasisChange={(nextBasis) => { setBasis(nextBasis); setSelectedMonth(null) }} />
       ) : (
         <PriceComparison />
       )}
@@ -647,6 +852,11 @@ function App() {
           <>
             <p>集計基準日 {data.meta.asOf} ／ 価格マスター {data.meta.priceMasterVersion} ／ 実績金額は概算です</p>
             <p>院内原価には設備償却・再製作・管理費を含みません。</p>
+          </>
+        ) : view === 'insurance' ? (
+          <>
+            <p>保険点数マスター {data.meta.insuranceMasterVersion} ／ {data.insuranceMaster.schedule}</p>
+            <p>表示額は算定前提に基づく試算です。実請求はレセプト条件・材料区分を確認してください。</p>
           </>
         ) : (
           <>

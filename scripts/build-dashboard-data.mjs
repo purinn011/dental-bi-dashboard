@@ -24,10 +24,11 @@ const inputPath = resolve(process.cwd(), inputArg)
 const outputPath = resolve(projectRoot, outputArg)
 const reportPath = resolve(projectRoot, 'build-reports/data-quality-report.json')
 
-const [csvText, typeMaster, priceMaster] = await Promise.all([
+const [csvText, typeMaster, priceMaster, insuranceMaster] = await Promise.all([
   readFile(inputPath, 'utf8'),
   readFile(resolve(projectRoot, 'config/type-master.json'), 'utf8').then(JSON.parse),
   readFile(resolve(projectRoot, 'config/price-master.json'), 'utf8').then(JSON.parse),
+  readFile(resolve(projectRoot, 'config/insurance-master.json'), 'utf8').then(JSON.parse),
 ])
 
 const rows = parse(csvText.replace(/^\uFEFF/, ''), {
@@ -170,6 +171,9 @@ function addAggregate(dateBasis, isoDate, unit) {
   const month = isoDate.slice(0, 7)
   const key = [dateBasis, month, unit.majorType, unit.detailType].join('|')
   const price = priceMaster.details[unit.detailType] ?? priceMaster.defaults[unit.majorType]
+  const isInsurancePeriod = month >= insuranceMaster.effectiveFrom &&
+    (!insuranceMaster.effectiveTo || month <= insuranceMaster.effectiveTo)
+  const insurance = isInsurancePeriod ? insuranceMaster.details[unit.detailType] : undefined
   const isFuture = isoDate > asOf
 
   if (!aggregates.has(key)) {
@@ -183,6 +187,11 @@ function addAggregate(dateBasis, isoDate, unit) {
       internalCost: price?.internal !== null && price?.internal !== undefined ? 0 : null,
       externalNarita: price?.external.narita !== null && price?.external.narita !== undefined ? 0 : null,
       externalToyoDental: price?.external.toyoDental !== null && price?.external.toyoDental !== undefined ? 0 : null,
+      insurancePointsMin: insurance ? 0 : null,
+      insurancePointsMax: insurance ? 0 : null,
+      insuranceAmountMin: insurance ? 0 : null,
+      insuranceAmountMax: insurance ? 0 : null,
+      insuranceSchedule: insurance ? insuranceMaster.schedule : null,
       isPartialMonth: month === asOfMonth,
       isFutureMonth: month > asOfMonth,
     })
@@ -195,6 +204,12 @@ function addAggregate(dateBasis, isoDate, unit) {
     if (target.internalCost !== null) target.internalCost += price.internal
     if (target.externalNarita !== null) target.externalNarita += price.external.narita
     if (target.externalToyoDental !== null) target.externalToyoDental += price.external.toyoDental
+  }
+  if (insurance) {
+    target.insurancePointsMin += insurance.pointsMin
+    target.insurancePointsMax += insurance.pointsMax
+    target.insuranceAmountMin += insurance.pointsMin * insuranceMaster.pointValueYen
+    target.insuranceAmountMax += insurance.pointsMax * insuranceMaster.pointValueYen
   }
 }
 
@@ -212,7 +227,7 @@ const monthly = [...aggregates.values()].sort((a, b) =>
 
 const dashboard = {
   meta: {
-    schemaVersion: '1.1.0',
+    schemaVersion: '1.2.0',
     generatedAt: new Date().toISOString(),
     asOf,
     sourceRows: quality.sourceRows,
@@ -227,11 +242,13 @@ const dashboard = {
     invalidSetDateRows: quality.invalidSetDateRows,
     typeMasterVersion: typeMaster.version,
     priceMasterVersion: priceMaster.version,
+    insuranceMasterVersion: insuranceMaster.version,
   },
   priceMaster: {
     defaults: priceMaster.defaults,
     details: priceMaster.details,
   },
+  insuranceMaster,
   monthly,
 }
 

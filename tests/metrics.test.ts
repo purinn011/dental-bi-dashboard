@@ -12,6 +12,11 @@ const baseRow: MonthlyAggregate = {
   internalCost: 1500,
   externalNarita: 9000,
   externalToyoDental: 9000,
+  insurancePointsMin: 2497,
+  insurancePointsMax: 2999,
+  insuranceAmountMin: 24970,
+  insuranceAmountMax: 29990,
+  insuranceSchedule: '令和8年度診療報酬',
   isPartialMonth: true,
   isFutureMonth: false,
 }
@@ -59,5 +64,18 @@ describe('amount calculations', () => {
     }
     expect(savingsAmount(unpriced, 'narita')).toBeNull()
     expect(sumNullable([null, null])).toBeNull()
+  })
+
+  it('calculates e.max savings from 4,180 yen material cost plus 375 yen labor', () => {
+    const emaxRow = {
+      ...baseRow,
+      majorType: 'Other' as const,
+      detailType: 'e.max',
+      internalCost: 4555,
+      externalNarita: 12000,
+      externalToyoDental: 13000,
+    }
+    expect(savingsAmount(emaxRow, 'narita')).toBe(7445)
+    expect(savingsAmount(emaxRow, 'toyoDental')).toBe(8445)
   })
 })
