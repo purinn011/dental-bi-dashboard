@@ -1,5 +1,5 @@
 {
-  "version": "2026-08-26.1",
+  "version": "2026-08-26.2",
   "schedule": "令和8年度診療報酬",
   "effectiveFrom": "2026-06",
   "effectiveTo": null,
@@ -37,6 +37,21 @@
       "precision": "歯髄状態・CAD材料III/Vで変動"
     }
   },
+  "pointTable": [
+    { "detailType": "CAD冠（前歯）", "pulpStatus": "生活歯", "materialClass": "IV", "formation": 306, "cadFormation": 490, "opticalImpression": 150, "cadTechnology": 1200, "placement": 45, "innerSurface": 55, "maintenance": 100, "cadMaterial": 328, "adhesiveMaterial": 38, "totalPoints": 2712 },
+    { "detailType": "CAD冠（前歯）", "pulpStatus": "失活歯", "materialClass": "IV", "formation": 166, "cadFormation": 470, "opticalImpression": 150, "cadTechnology": 1200, "placement": 45, "innerSurface": 55, "maintenance": 100, "cadMaterial": 328, "adhesiveMaterial": 38, "totalPoints": 2552 },
+    { "detailType": "CAD冠（小臼歯）", "pulpStatus": "生活歯", "materialClass": "I", "formation": 306, "cadFormation": 490, "opticalImpression": 150, "cadTechnology": 1200, "placement": 45, "innerSurface": 55, "maintenance": 100, "cadMaterial": 169, "adhesiveMaterial": 38, "totalPoints": 2553 },
+    { "detailType": "CAD冠（小臼歯）", "pulpStatus": "失活歯", "materialClass": "I", "formation": 166, "cadFormation": 470, "opticalImpression": 150, "cadTechnology": 1200, "placement": 45, "innerSurface": 55, "maintenance": 100, "cadMaterial": 169, "adhesiveMaterial": 38, "totalPoints": 2393 },
+    { "detailType": "CAD冠（小臼歯）", "pulpStatus": "生活歯", "materialClass": "II", "formation": 306, "cadFormation": 490, "opticalImpression": 150, "cadTechnology": 1200, "placement": 45, "innerSurface": 55, "maintenance": 100, "cadMaterial": 142, "adhesiveMaterial": 38, "totalPoints": 2526 },
+    { "detailType": "CAD冠（小臼歯）", "pulpStatus": "失活歯", "materialClass": "II", "formation": 166, "cadFormation": 470, "opticalImpression": 150, "cadTechnology": 1200, "placement": 45, "innerSurface": 55, "maintenance": 100, "cadMaterial": 142, "adhesiveMaterial": 38, "totalPoints": 2366 },
+    { "detailType": "CAD冠（大臼歯）", "pulpStatus": "生活歯", "materialClass": "III", "formation": 306, "cadFormation": 490, "opticalImpression": 150, "cadTechnology": 1200, "placement": 45, "innerSurface": 55, "maintenance": 100, "cadMaterial": 273, "adhesiveMaterial": 38, "totalPoints": 2657 },
+    { "detailType": "CAD冠（大臼歯）", "pulpStatus": "失活歯", "materialClass": "III", "formation": 166, "cadFormation": 470, "opticalImpression": 150, "cadTechnology": 1200, "placement": 45, "innerSurface": 55, "maintenance": 100, "cadMaterial": 273, "adhesiveMaterial": 38, "totalPoints": 2497 },
+    { "detailType": "CAD冠（大臼歯）", "pulpStatus": "生活歯", "materialClass": "V", "formation": 306, "cadFormation": 490, "opticalImpression": 150, "cadTechnology": 1200, "placement": 45, "innerSurface": 55, "maintenance": 100, "cadMaterial": 615, "adhesiveMaterial": 38, "totalPoints": 2999 },
+    { "detailType": "CAD冠（大臼歯）", "pulpStatus": "失活歯", "materialClass": "V", "formation": 166, "cadFormation": 470, "opticalImpression": 150, "cadTechnology": 1200, "placement": 45, "innerSurface": 55, "maintenance": 100, "cadMaterial": 615, "adhesiveMaterial": 38, "totalPoints": 2839 },
+    { "detailType": "CADインレー（小臼歯）", "pulpStatus": "―", "materialClass": "I", "formation": 120, "cadFormation": 150, "opticalImpression": 150, "cadTechnology": 770, "placement": 45, "innerSurface": 55, "maintenance": 0, "cadMaterial": 169, "adhesiveMaterial": 38, "totalPoints": 1497 },
+    { "detailType": "CADインレー（小臼歯）", "pulpStatus": "―", "materialClass": "II", "formation": 120, "cadFormation": 150, "opticalImpression": 150, "cadTechnology": 770, "placement": 45, "innerSurface": 55, "maintenance": 0, "cadMaterial": 142, "adhesiveMaterial": 38, "totalPoints": 1470 },
+    { "detailType": "CADインレー（大臼歯）", "pulpStatus": "―", "materialClass": "III", "formation": 120, "cadFormation": 150, "opticalImpression": 150, "cadTechnology": 770, "placement": 45, "innerSurface": 55, "maintenance": 0, "cadMaterial": 273, "adhesiveMaterial": 38, "totalPoints": 1601 }
+  ],
   "sources": [
     {
       "label": "令和8年度 歯科診療報酬点数表",
