@@ -30,22 +30,34 @@ describe('generated dashboard data', () => {
     const allowed = new Set([
       'month', 'dateBasis', 'majorType', 'detailType', 'units', 'futureUnits',
       'internalCost', 'externalNarita', 'externalToyoDental',
-      'isPartialMonth', 'isFutureMonth',
+      'insurancePointsMin', 'insurancePointsMax', 'insuranceAmountMin',
+      'insuranceAmountMax', 'insuranceSchedule', 'isPartialMonth', 'isFutureMonth',
     ])
     for (const row of data.monthly) {
       expect(Object.keys(row).every((key) => allowed.has(key))).toBe(true)
     }
   })
 
-  it('prices e.max externally while preserving its missing internal cost', () => {
+  it('prices e.max externally and uses the supplied 4,555 yen internal cost', () => {
     const emaxRows = data.monthly.filter((row) => row.detailType === 'e.max')
     expect(emaxRows.length).toBeGreaterThan(0)
-    expect(emaxRows.every((row) => row.internalCost === null)).toBe(true)
+    expect(emaxRows.every((row) => row.internalCost === row.units * 4555)).toBe(true)
     expect(emaxRows.every((row) => row.externalNarita === row.units * 12000)).toBe(true)
     expect(emaxRows.every((row) => row.externalToyoDental === row.units * 13000)).toBe(true)
 
     const unpricedOthers = data.monthly.filter((row) => row.majorType === 'Other' && row.detailType !== 'e.max')
     expect(unpricedOthers.every((row) => row.internalCost === null && row.externalNarita === null)).toBe(true)
+  })
+
+  it('applies the Reiwa 8 insurance master only from June 2026', () => {
+    const eligible = data.monthly.filter((row) => row.detailType === 'CAD冠（大臼歯）')
+    expect(eligible.filter((row) => row.month < '2026-06').every((row) => row.insurancePointsMin === null)).toBe(true)
+    expect(eligible.filter((row) => row.month >= '2026-06').every((row) =>
+      row.insurancePointsMin === row.units * 2497 &&
+      row.insurancePointsMax === row.units * 2999 &&
+      row.insuranceAmountMin === row.units * 24970 &&
+      row.insuranceAmountMax === row.units * 29990
+    )).toBe(true)
   })
 
   it('stores vendor prices without converting missing prices to zero', () => {

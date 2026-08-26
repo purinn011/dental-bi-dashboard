@@ -5,17 +5,18 @@ const projectRoot = resolve(import.meta.dirname, '..')
 const dashboardPath = resolve(projectRoot, 'public/data/dashboard.json')
 const dashboard = JSON.parse(await readFile(dashboardPath, 'utf8'))
 
-const allowedTopLevel = new Set(['meta', 'priceMaster', 'monthly'])
+const allowedTopLevel = new Set(['meta', 'priceMaster', 'insuranceMaster', 'monthly'])
 const allowedMeta = new Set([
   'schemaVersion', 'generatedAt', 'asOf', 'sourceRows', 'acceptedRows', 'reviewRows',
   'expandedUnits', 'validDateUnits', 'validSetDateUnits', 'missingPartRows',
   'missingTypeRows', 'invalidDateRows', 'invalidSetDateRows', 'typeMasterVersion',
-  'priceMasterVersion',
+  'priceMasterVersion', 'insuranceMasterVersion',
 ])
 const allowedMonthly = new Set([
   'month', 'dateBasis', 'majorType', 'detailType', 'units', 'futureUnits',
   'internalCost', 'externalNarita', 'externalToyoDental', 'isPartialMonth',
-  'isFutureMonth',
+  'isFutureMonth', 'insurancePointsMin', 'insurancePointsMax',
+  'insuranceAmountMin', 'insuranceAmountMax', 'insuranceSchedule',
 ])
 
 function rejectUnknownKeys(object, allowed, label) {

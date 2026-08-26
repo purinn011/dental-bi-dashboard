@@ -64,6 +64,7 @@ button {
 
 .view-tabs {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin-bottom: 18px;
   padding: 4px;
@@ -214,6 +215,27 @@ h2 {
   border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: var(--shadow);
+}
+
+.filter-panel--insurance {
+  grid-template-columns: minmax(180px, 0.8fr) minmax(260px, 1.1fr) minmax(360px, 2fr);
+}
+
+.insurance-assumption {
+  display: grid;
+  gap: 4px;
+  min-height: 40px;
+  padding: 8px 12px;
+  color: #475569;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  font-size: 0.72rem;
+}
+
+.insurance-assumption strong {
+  color: #1e293b;
+  font-size: 0.68rem;
 }
 
 .filter-field {
@@ -548,6 +570,18 @@ h2 {
   padding-left: 1.25rem;
 }
 
+.source-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 10px;
+}
+
+.source-links a {
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
 .chart-wrap {
   min-width: 0;
 }
@@ -744,6 +778,14 @@ footer p {
 
   .reset-button {
     width: 100%;
+  }
+
+  .filter-panel--insurance {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-panel--insurance .insurance-assumption {
+    grid-column: 1 / -1;
   }
 }
 

@@ -1,0 +1,56 @@
+{
+  "version": "2026-08-26.1",
+  "schedule": "令和8年度診療報酬",
+  "effectiveFrom": "2026-06",
+  "effectiveTo": null,
+  "pointValueYen": 10,
+  "assumptions": {
+    "opticalImpression": 150,
+    "adhesiveMaterial": 38,
+    "dentalTechnicianCollaboration": 0,
+    "patientCopayRate": 0.3
+  },
+  "details": {
+    "CADインレー（小臼歯）": {
+      "pointsMin": 1470,
+      "pointsMax": 1497,
+      "precision": "CAD材料I/IIで変動"
+    },
+    "CADインレー（大臼歯）": {
+      "pointsMin": 1601,
+      "pointsMax": 1601,
+      "precision": "CAD材料III前提"
+    },
+    "CAD冠（前歯）": {
+      "pointsMin": 2552,
+      "pointsMax": 2712,
+      "precision": "生活歯/失活歯で変動"
+    },
+    "CAD冠（小臼歯）": {
+      "pointsMin": 2366,
+      "pointsMax": 2553,
+      "precision": "歯髄状態・CAD材料I/IIで変動"
+    },
+    "CAD冠（大臼歯）": {
+      "pointsMin": 2497,
+      "pointsMax": 2999,
+      "precision": "歯髄状態・CAD材料III/Vで変動"
+    }
+  },
+  "sources": [
+    {
+      "label": "令和8年度 歯科診療報酬点数表",
+      "url": "https://www.mhlw.go.jp/content/12400000/001665293.pdf"
+    },
+    {
+      "label": "使用歯科材料料の2026年9月1日適用予定通知",
+      "url": "https://www.mhlw.go.jp/content/12404000/001732143.pdf"
+    }
+  ],
+  "notes": [
+    "令和8年度改定の適用開始月である2026年6月以降のみ集計します。過去月へ現行点数を遡及適用しません。",
+    "光学印象150点、内面処理加算1、クラウン・ブリッジ維持管理料（冠のみ）の算定要件を満たす前提です。",
+    "装着材料はユーザー指定の38点で試算しています。2026年9月1日適用予定の厚労省通知では自動練和型36点のため、実請求時は材料区分を確認してください。",
+    "歯髄状態とCAD材料区分が元データにないため、条件差のある品目は下限～上限で表示します。"
+  ]
+}
