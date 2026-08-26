@@ -5,6 +5,8 @@ import {
   CartesianGrid,
   Cell,
   Legend,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -37,19 +39,25 @@ const OUTSOURCE_PRICE_LABELS: Record<OutsourcePriceSource, string> = {
 }
 
 const numberFormat = new Intl.NumberFormat('ja-JP')
-const DASHBOARD_DATA_VERSION = '2026-08-26.1'
+const DASHBOARD_DATA_VERSION = '2026-08-26.4'
+const ACCESS_SESSION_KEY = 'dental-bi-access'
+const ACCESS_PASSCODE_HASH = 'cd14333e9dfda1b00b52a2a78b1545ff721e890661c2a428b555026055ad31d5'
 
-function fiscalYearFromMonth(month: string) {
-  const year = Number(month.slice(0, 4))
-  return Number(month.slice(5, 7)) >= 4 ? year : year - 1
+async function sha256(value: string) {
+  const digest = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }
 
-function fiscalYearLabel(year: number) {
-  return `${year}年度（${year}/4〜${year + 1}/3）`
+function calendarYearFromMonth(month: string) {
+  return Number(month.slice(0, 4))
+}
+
+function calendarYearLabel(year: number) {
+  return `${year}年（1〜12月）`
 }
 
 function axisMonthLabel(month: string) {
-  return `${month.slice(2, 4)}/${Number(month.slice(5, 7))}`
+  return `${Number(month.slice(5, 7))}月`
 }
 
 function formatNumberRange(min: number | null, max: number | null, suffix: string) {
@@ -77,8 +85,27 @@ interface AmountChartRow {
   savings: number
 }
 
-function buildMonthRows(rows: MonthlyAggregate[]): MonthChartRow[] {
+function monthsForCalendarRange(range: string) {
+  if (!range.startsWith('year:')) return []
+  const year = range.slice(5)
+  return Array.from({ length: 12 }, (_, index) => `${year}-${String(index + 1).padStart(2, '0')}`)
+}
+
+function buildMonthRows(rows: MonthlyAggregate[], visibleMonths: string[], asOf: string): MonthChartRow[] {
   const grouped = new Map<string, MonthChartRow>()
+  const asOfMonth = asOf.slice(0, 7)
+  for (const month of visibleMonths) {
+    grouped.set(month, {
+      month,
+      monthLabel: axisMonthLabel(month),
+      CAD: 0,
+      Zr: 0,
+      Other: 0,
+      total: 0,
+      isPartialMonth: month === asOfMonth,
+      isFutureMonth: month > asOfMonth,
+    })
+  }
   for (const row of rows) {
     if (!grouped.has(row.month)) {
       grouped.set(row.month, {
@@ -101,8 +128,17 @@ function buildMonthRows(rows: MonthlyAggregate[]): MonthChartRow[] {
   return [...grouped.values()].sort((a, b) => a.month.localeCompare(b.month))
 }
 
-function buildAmountRows(rows: MonthlyAggregate[], priceSource: OutsourcePriceSource): AmountChartRow[] {
+function buildAmountRows(rows: MonthlyAggregate[], priceSource: OutsourcePriceSource, visibleMonths: string[]): AmountChartRow[] {
   const grouped = new Map<string, AmountChartRow>()
+  for (const month of visibleMonths) {
+    grouped.set(month, {
+      month,
+      monthLabel: axisMonthLabel(month),
+      internal: 0,
+      external: 0,
+      savings: 0,
+    })
+  }
   for (const row of rows) {
     if (!grouped.has(row.month)) {
       grouped.set(row.month, {
@@ -244,15 +280,15 @@ function InsuranceDashboard({ data, basis, onBasisChange }: {
   basis: DateBasis
   onBasisChange: (basis: DateBasis) => void
 }) {
-  const defaultFiscalYear = fiscalYearFromMonth(data.insuranceMaster.effectiveFrom)
-  const [insuranceRange, setInsuranceRange] = useState(`fy:${defaultFiscalYear}`)
+  const defaultYear = calendarYearFromMonth(data.insuranceMaster.effectiveFrom)
+  const [insuranceRange, setInsuranceRange] = useState(`year:${defaultYear}`)
   const basisRows = useMemo(
     () => data.monthly.filter((row) => row.dateBasis === basis),
     [data, basis],
   )
   const months = useMemo(() => [...new Set(basisRows.map((row) => row.month))].sort(), [basisRows])
-  const fiscalYears = useMemo(
-    () => [...new Set(months.map(fiscalYearFromMonth))].sort((a, b) => a - b),
+  const calendarYears = useMemo(
+    () => [...new Set(months.map(calendarYearFromMonth))].sort((a, b) => a - b),
     [months],
   )
   const rangeMonths = useMemo(() => getRangeMonths(months, insuranceRange), [months, insuranceRange])
@@ -264,19 +300,6 @@ function InsuranceDashboard({ data, basis, onBasisChange }: {
     () => periodRows.filter((row) => row.insuranceAmountMin !== null && row.insuranceAmountMax !== null),
     [periodRows],
   )
-  const monthlyRows = useMemo(() => {
-    const grouped = new Map<string, { month: string; monthLabel: string; units: number; amountMin: number; amountMax: number }>()
-    for (const row of rows) {
-      if (!grouped.has(row.month)) {
-        grouped.set(row.month, { month: row.month, monthLabel: axisMonthLabel(row.month), units: 0, amountMin: 0, amountMax: 0 })
-      }
-      const target = grouped.get(row.month)!
-      target.units += row.units
-      target.amountMin += row.insuranceAmountMin ?? 0
-      target.amountMax += row.insuranceAmountMax ?? 0
-    }
-    return [...grouped.values()].sort((a, b) => a.month.localeCompare(b.month))
-  }, [rows])
   const totals = useMemo(() => {
     const units = rows.reduce((sum, row) => sum + row.units, 0)
     const pointsMin = rows.reduce((sum, row) => sum + (row.insurancePointsMin ?? 0), 0)
@@ -311,9 +334,9 @@ function InsuranceDashboard({ data, basis, onBasisChange }: {
           </select>
         </div>
         <div className="filter-field">
-          <label htmlFor="insuranceRange">対象年度</label>
+          <label htmlFor="insuranceRange">対象年</label>
           <select id="insuranceRange" value={insuranceRange} onChange={(event) => setInsuranceRange(event.target.value)}>
-            {fiscalYears.map((year) => <option key={year} value={`fy:${year}`}>{fiscalYearLabel(year)}</option>)}
+            {calendarYears.map((year) => <option key={year} value={`year:${year}`}>{calendarYearLabel(year)}</option>)}
           </select>
         </div>
         <div className="insurance-assumption">
@@ -329,74 +352,63 @@ function InsuranceDashboard({ data, basis, onBasisChange }: {
         <Card label="報酬−院内原価" value={formatNumberRange(totals.units ? totals.amountMin - totals.internal : null, totals.units ? totals.amountMax - totals.internal : null, '円')} note="算定対象品目の標準院内原価との差" tone="green" />
       </section>
 
-      {rows.length === 0 ? (
-        <section className="empty-card">
-          <h2>この年度は保険点数の適用対象外です</h2>
-          <p>{data.insuranceMaster.schedule}は{formatMonth(data.insuranceMaster.effectiveFrom)}以降にのみ適用し、過去年度へ遡及していません。</p>
+      {rows.length === 0 && (
+        <section className="insurance-period-note">
+          選択年の実績には{data.insuranceMaster.schedule}の適用対象月がありません。下の点数表は現行マスターです。
         </section>
-      ) : (
-        <>
-          <section className="chart-card chart-card--wide">
-            <div className="section-heading">
-              <div>
-                <p className="section-kicker">MONTHLY REIMBURSEMENT</p>
-                <h2>月別 診療報酬額</h2>
-              </div>
-              <p>条件不明分は下限〜上限で表示</p>
-            </div>
-            <ResponsiveContainer width="100%" height={340}>
-              <BarChart data={monthlyRows} margin={{ top: 16, right: 8, left: 4, bottom: 0 }} accessibilityLayer>
-                <CartesianGrid stroke="#e8edf4" vertical={false} />
-                <XAxis dataKey="monthLabel" tickLine={false} axisLine={false} />
-                <YAxis tickFormatter={(value) => `${Math.round(Number(value) / 10_000)}万`} tickLine={false} axisLine={false} width={54} />
-                <Tooltip labelFormatter={(_, payload) => payload?.[0]?.payload?.month ? formatMonth(payload[0].payload.month) : ''} formatter={(value, name) => [formatYen(Number(value ?? 0)), String(name)]} />
-                <Legend />
-                <Bar name="診療報酬 下限" dataKey="amountMin" fill="#60a5fa" radius={[4, 4, 0, 0]} />
-                <Bar name="診療報酬 上限" dataKey="amountMax" fill="#1d4ed8" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </section>
-
-          <section className="table-card">
-            <div className="section-heading">
-              <div>
-                <p className="section-kicker">INSURANCE DETAIL</p>
-                <h2>月・種類別 保険点数明細</h2>
-              </div>
-              <p>{rows.length}行</p>
-            </div>
-            <div className="table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    <th>月</th>
-                    <th>種類</th>
-                    <th className="numeric">本数</th>
-                    <th className="numeric">1本あたり点数</th>
-                    <th className="numeric">月額診療報酬</th>
-                    <th>精度</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...rows].sort((a, b) => b.month.localeCompare(a.month) || b.units - a.units).map((row) => {
-                    const definition = data.insuranceMaster.details[row.detailType]
-                    return (
-                      <tr key={`${row.month}-${row.dateBasis}-${row.detailType}-insurance`}>
-                        <td>{formatMonth(row.month)}</td>
-                        <td>{row.detailType}</td>
-                        <td className="numeric">{numberFormat.format(row.units)}本</td>
-                        <td className="numeric">{formatNumberRange(definition.pointsMin, definition.pointsMax, '点')}</td>
-                        <td className="numeric">{formatNumberRange(row.insuranceAmountMin, row.insuranceAmountMax, '円')}</td>
-                        <td>{definition.precision}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </>
       )}
+
+      <section className="table-card insurance-points-card">
+        <div className="section-heading">
+          <div>
+            <p className="section-kicker">INSURANCE POINT MASTER</p>
+            <h2>CAD/CAM 保険点数表</h2>
+          </div>
+          <p>1歯あたり・光学印象・装着材料{data.insuranceMaster.assumptions.adhesiveMaterial}点で計算</p>
+        </div>
+        <div className="table-scroll">
+          <table className="insurance-points-table">
+            <thead>
+              <tr>
+                <th>種類</th>
+                <th>歯髄状態</th>
+                <th>材料区分</th>
+                <th className="numeric">形成</th>
+                <th className="numeric">CAD形成加算</th>
+                <th className="numeric">光学印象</th>
+                <th className="numeric">CAD/CAM技術料</th>
+                <th className="numeric">装着</th>
+                <th className="numeric">内面処理</th>
+                <th className="numeric">補管</th>
+                <th className="numeric">CAD材料</th>
+                <th className="numeric">装着材料</th>
+                <th className="numeric total-points">合計点数</th>
+                <th className="numeric total-amount">診療報酬額</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.insuranceMaster.pointTable.map((row) => (
+                <tr key={`${row.detailType}-${row.pulpStatus}-${row.materialClass}`}>
+                  <td className="point-item">{row.detailType}</td>
+                  <td>{row.pulpStatus}</td>
+                  <td>{row.materialClass}</td>
+                  <td className="numeric">{numberFormat.format(row.formation)}</td>
+                  <td className="numeric">{numberFormat.format(row.cadFormation)}</td>
+                  <td className="numeric">{numberFormat.format(row.opticalImpression)}</td>
+                  <td className="numeric">{numberFormat.format(row.cadTechnology)}</td>
+                  <td className="numeric">{numberFormat.format(row.placement)}</td>
+                  <td className="numeric">{numberFormat.format(row.innerSurface)}</td>
+                  <td className="numeric">{numberFormat.format(row.maintenance)}</td>
+                  <td className="numeric">{numberFormat.format(row.cadMaterial)}</td>
+                  <td className="numeric">{numberFormat.format(row.adhesiveMaterial)}</td>
+                  <td className="numeric total-points">{numberFormat.format(row.totalPoints)}点</td>
+                  <td className="numeric total-amount">{formatYen(row.totalPoints * data.insuranceMaster.pointValueYen)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <section className="source-notes" aria-label="保険点数の注記">
         <strong>算定上の注意</strong>
@@ -410,11 +422,9 @@ function InsuranceDashboard({ data, basis, onBasisChange }: {
 }
 
 function getRangeMonths(months: string[], range: string) {
-  if (range === 'all') return new Set(months)
-  if (range === 'last12') return new Set(months.slice(-12))
-  if (range.startsWith('fy:')) {
-    const fiscalYear = Number(range.slice(3))
-    return new Set(months.filter((month) => fiscalYearFromMonth(month) === fiscalYear))
+  if (range.startsWith('year:')) {
+    const calendarYear = Number(range.slice(5))
+    return new Set(months.filter((month) => calendarYearFromMonth(month) === calendarYear))
   }
   return new Set()
 }
@@ -454,34 +464,88 @@ function ErrorState({ message }: { message: string }) {
   )
 }
 
+function LoginGate({ onUnlock }: { onUnlock: () => void }) {
+  const [passcode, setPasscode] = useState('')
+  const [message, setMessage] = useState('')
+  const [isChecking, setIsChecking] = useState(false)
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setIsChecking(true)
+    setMessage('')
+    try {
+      if (await sha256(passcode.trim()) === ACCESS_PASSCODE_HASH) {
+        window.sessionStorage.setItem(ACCESS_SESSION_KEY, 'granted')
+        onUnlock()
+        return
+      }
+      setMessage('パスワードが違います。もう一度入力してください。')
+    } catch {
+      setMessage('認証処理に失敗しました。ページを再読み込みしてください。')
+    } finally {
+      setIsChecking(false)
+    }
+  }
+
+  return (
+    <main className="login-page">
+      <form className="login-card" onSubmit={handleSubmit}>
+        <div className="login-mark" aria-hidden="true">BI</div>
+        <p className="eyebrow">PRIVATE DASHBOARD</p>
+        <h1>院内補綴制作ダッシュボード</h1>
+        <p className="login-copy">閲覧用パスワードを入力してください。</p>
+        <label htmlFor="access-passcode">パスワード</label>
+        <input
+          id="access-passcode"
+          type="password"
+          value={passcode}
+          onChange={(event) => setPasscode(event.target.value)}
+          autoComplete="current-password"
+          autoFocus
+          required
+        />
+        {message && <p className="login-error" role="alert">{message}</p>}
+        <button type="submit" disabled={isChecking}>{isChecking ? '確認中…' : 'ダッシュボードを表示'}</button>
+        <p className="login-note">この画面は簡易的な閲覧制限です。</p>
+      </form>
+    </main>
+  )
+}
+
 function App() {
+  const [isAuthorized, setIsAuthorized] = useState(() => window.sessionStorage.getItem(ACCESS_SESSION_KEY) === 'granted')
   const [data, setData] = useState<DashboardData | null>(null)
   const [error, setError] = useState('')
   const [view, setView] = useState<DashboardView>('performance')
   const [basis, setBasis] = useState<DateBasis>('date')
   const [priceSource, setPriceSource] = useState<OutsourcePriceSource>('narita')
-  const [range, setRange] = useState('last12')
+  const [range, setRange] = useState('year:2026')
   const [majorTypes, setMajorTypes] = useState<Set<MajorType>>(new Set(['CAD', 'Zr', 'Other']))
   const [detailType, setDetailType] = useState('all')
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!isAuthorized) return
     fetch(`${import.meta.env.BASE_URL}data/dashboard.json?v=${DASHBOARD_DATA_VERSION}`)
       .then((response) => {
         if (!response.ok) throw new Error(`HTTP ${response.status}`)
         return response.json()
       })
-      .then((value: DashboardData) => setData(value))
+      .then((value: DashboardData) => {
+        setData(value)
+        setRange(`year:${value.meta.asOf.slice(0, 4)}`)
+      })
       .catch((caught: unknown) => setError(caught instanceof Error ? caught.message : '不明なエラー'))
-  }, [])
+  }, [isAuthorized])
 
   const basisRows = useMemo(() => data?.monthly.filter((row) => row.dateBasis === basis) ?? [], [data, basis])
   const months = useMemo(() => [...new Set(basisRows.map((row) => row.month))].sort(), [basisRows])
-  const fiscalYears = useMemo(
-    () => [...new Set(months.map(fiscalYearFromMonth))].sort((a, b) => a - b),
+  const calendarYears = useMemo(
+    () => [...new Set(months.map(calendarYearFromMonth))].sort((a, b) => a - b),
     [months],
   )
   const rangeMonths = useMemo(() => getRangeMonths(months, range), [months, range])
+  const visibleCalendarMonths = useMemo(() => monthsForCalendarRange(range), [range])
   const detailOptions = useMemo(() => [...new Set(
     basisRows.filter((row) => majorTypes.has(row.majorType)).map((row) => row.detailType),
   )].sort(), [basisRows, majorTypes])
@@ -492,13 +556,27 @@ function App() {
     (detailType === 'all' || row.detailType === detailType)
   ), [basisRows, rangeMonths, majorTypes, detailType])
 
+  const filteredDimensionRows = useMemo(() => data?.productionDimensions.filter((row) =>
+    row.dateBasis === basis &&
+    rangeMonths.has(row.month) &&
+    majorTypes.has(row.majorType) &&
+    (detailType === 'all' || row.detailType === detailType) &&
+    (!selectedMonth || row.month === selectedMonth)
+  ) ?? [], [data, basis, rangeMonths, majorTypes, detailType, selectedMonth])
+
   const focusedRows = useMemo(() => selectedMonth
     ? filteredRows.filter((row) => row.month === selectedMonth)
     : filteredRows,
   [filteredRows, selectedMonth])
 
-  const monthRows = useMemo(() => buildMonthRows(filteredRows), [filteredRows])
-  const amountRows = useMemo(() => buildAmountRows(filteredRows, priceSource), [filteredRows, priceSource])
+  const monthRows = useMemo(
+    () => buildMonthRows(filteredRows, visibleCalendarMonths, data?.meta.asOf ?? ''),
+    [filteredRows, visibleCalendarMonths, data],
+  )
+  const amountRows = useMemo(
+    () => buildAmountRows(filteredRows, priceSource, visibleCalendarMonths),
+    [filteredRows, priceSource, visibleCalendarMonths],
+  )
 
   const typeRows = useMemo(() => {
     const grouped = new Map<string, { detailType: string; majorType: MajorType; units: number; amount: number }>()
@@ -512,6 +590,25 @@ function App() {
     }
     return [...grouped.values()].sort((a, b) => b.units - a.units).slice(0, 10)
   }, [focusedRows, priceSource])
+
+  const clinicRows = useMemo(() => {
+    const targetClinics = ['東松原', '下北沢']
+    const grouped = new Map(targetClinics.map((clinic) => [clinic, 0]))
+    for (const row of filteredDimensionRows) {
+      if (grouped.has(row.clinic)) grouped.set(row.clinic, (grouped.get(row.clinic) ?? 0) + row.units)
+    }
+    const total = [...grouped.values()].reduce((sum, value) => sum + value, 0)
+    return targetClinics.map((clinic) => ({
+      clinic,
+      units: grouped.get(clinic) ?? 0,
+      share: total ? Math.round(((grouped.get(clinic) ?? 0) / total) * 1000) / 10 : 0,
+    })).filter((row) => row.units > 0)
+  }, [filteredDimensionRows])
+
+  const clinicExcludedUnits = useMemo(() => filteredDimensionRows.reduce(
+    (sum, row) => sum + (row.clinic === '東松原' || row.clinic === '下北沢' ? 0 : row.units),
+    0,
+  ), [filteredDimensionRows])
 
   const totals = useMemo(() => {
     const units = focusedRows.reduce((sum, row) => sum + row.units, 0)
@@ -543,16 +640,17 @@ function App() {
   function resetFilters() {
     setBasis('date')
     setPriceSource('narita')
-    setRange('last12')
+    setRange(`year:${data?.meta.asOf.slice(0, 4) ?? '2026'}`)
     setMajorTypes(new Set(['CAD', 'Zr', 'Other']))
     setDetailType('all')
     setSelectedMonth(null)
   }
 
+  if (!isAuthorized) return <LoginGate onUnlock={() => setIsAuthorized(true)} />
   if (error) return <ErrorState message={error} />
   if (!data) return <LoadingState />
 
-  const latestMonth = monthRows.at(-1)
+  const latestMonth = monthRows.filter((row) => row.total > 0).at(-1)
   const statusText = selectedMonth
     ? `${formatMonth(selectedMonth)}を選択中`
     : `${monthRows.length}か月を表示`
@@ -570,12 +668,25 @@ function App() {
           <h1>院内補綴制作ダッシュボード</h1>
           <p className="header-copy">制作本数と院内制作による費用効果を月・種類別に確認し、外注単価を比較します。</p>
         </div>
-        <div className="header-meta">
-          <span className="status-dot" />
-          <div>
-            <strong>データ更新</strong>
-            <span>{new Date(data.meta.generatedAt).toLocaleString('ja-JP')}</span>
+        <div className="header-actions">
+          <div className="header-meta">
+            <span className="status-dot" />
+            <div>
+              <strong>データ更新</strong>
+              <span>{new Date(data.meta.generatedAt).toLocaleString('ja-JP')}</span>
+            </div>
           </div>
+          <button
+            className="logout-button"
+            type="button"
+            onClick={() => {
+              window.sessionStorage.removeItem(ACCESS_SESSION_KEY)
+              setData(null)
+              setIsAuthorized(false)
+            }}
+          >
+            ログアウト
+          </button>
         </div>
       </header>
 
@@ -625,9 +736,7 @@ function App() {
         <div className="filter-field">
           <label htmlFor="range">対象期間</label>
           <select id="range" value={range} onChange={(event) => { setRange(event.target.value); setSelectedMonth(null) }}>
-            <option value="last12">直近12か月</option>
-            <option value="all">全期間</option>
-            {fiscalYears.map((year) => <option key={year} value={`fy:${year}`}>{fiscalYearLabel(year)}</option>)}
+            {calendarYears.map((year) => <option key={year} value={`year:${year}`}>{calendarYearLabel(year)}</option>)}
           </select>
         </div>
         <fieldset className="filter-field filter-field--types">
@@ -781,6 +890,27 @@ function App() {
                     {typeRows.map((row) => <Cell key={row.detailType} fill={COLORS[row.majorType]} />)}
                   </Bar>
                 </BarChart>
+              </ResponsiveContainer>
+            </section>
+          </div>
+
+          <div className="chart-grid">
+            <section className="chart-card chart-card--wide">
+              <div className="section-heading">
+                <div>
+                  <p className="section-kicker">CLINIC MIX</p>
+                  <h2>医院別 制作構成</h2>
+                </div>
+                <p>{clinicExcludedUnits ? `東松原・下北沢以外 ${numberFormat.format(clinicExcludedUnits)}本を除外` : '東松原／下北沢'}</p>
+              </div>
+              <ResponsiveContainer width="100%" height={320}>
+                <PieChart accessibilityLayer>
+                  <Pie data={clinicRows} dataKey="units" nameKey="clinic" cx="50%" cy="47%" innerRadius={62} outerRadius={104} paddingAngle={2} label>
+                    {clinicRows.map((row, index) => <Cell key={row.clinic} fill={index === 0 ? '#2563eb' : '#0f766e'} />)}
+                  </Pie>
+                  <Tooltip formatter={(value, _, item) => [`${numberFormat.format(Number(value ?? 0))}本（${item?.payload?.share ?? 0}%）`, '制作本数']} />
+                  <Legend verticalAlign="bottom" />
+                </PieChart>
               </ResponsiveContainer>
             </section>
           </div>

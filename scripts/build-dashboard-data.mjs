@@ -73,6 +73,11 @@ function normalizeType(value) {
     .replace(/\s+/g, '')
 }
 
+function normalizeDimension(value) {
+  const normalized = String(value ?? '').normalize('NFKC').trim()
+  return normalized || '未設定'
+}
+
 function classifyToothType(part) {
   const tooth = String(part ?? '').normalize('NFKC').trim().match(/([1-8])$/)?.[1]
   if (tooth === '4' || tooth === '5') return '小臼歯'
@@ -129,6 +134,7 @@ for (const [index, row] of rows.entries()) {
   const rawTypes = parseArray(row['補綴物'])
   const date = parseDate(row['日付'])
   const setDate = parseDate(row['セット日'])
+  const clinic = normalizeDimension(row['クリニック'])
 
   if (!date) quality.invalidDateRows += 1
   if (!setDate) quality.invalidSetDateRows += 1
@@ -154,7 +160,7 @@ for (const [index, row] of rows.entries()) {
   for (const [unitIndex, rawType] of expandedTypes.entries()) {
     const classified = classifyType(rawType, parts[unitIndex])
     if (!typeMaster.mappings[classified.normalized]) unmappedTypes.add(classified.normalized)
-    units.push({ date, setDate, ...classified })
+    units.push({ date, setDate, clinic, ...classified })
   }
 }
 
@@ -164,6 +170,7 @@ quality.validSetDateUnits = units.filter((unit) => unit.setDate).length
 quality.unmappedNormalizedTypes = [...unmappedTypes].sort()
 
 const aggregates = new Map()
+const productionDimensionAggregates = new Map()
 const asOfMonth = asOf.slice(0, 7)
 
 function addAggregate(dateBasis, isoDate, unit) {
@@ -213,9 +220,36 @@ function addAggregate(dateBasis, isoDate, unit) {
   }
 }
 
+function addProductionDimensionAggregate(dateBasis, isoDate, unit) {
+  if (!isoDate) return
+  const month = isoDate.slice(0, 7)
+  const key = [dateBasis, month, unit.majorType, unit.detailType, unit.clinic].join('|')
+  const isFuture = isoDate > asOf
+
+  if (!productionDimensionAggregates.has(key)) {
+    productionDimensionAggregates.set(key, {
+      month,
+      dateBasis,
+      majorType: unit.majorType,
+      detailType: unit.detailType,
+      clinic: unit.clinic,
+      units: 0,
+      futureUnits: 0,
+      isPartialMonth: month === asOfMonth,
+      isFutureMonth: month > asOfMonth,
+    })
+  }
+
+  const target = productionDimensionAggregates.get(key)
+  target.units += 1
+  if (isFuture) target.futureUnits += 1
+}
+
 for (const unit of units) {
   addAggregate('date', unit.date, unit)
   addAggregate('setDate', unit.setDate, unit)
+  addProductionDimensionAggregate('date', unit.date, unit)
+  addProductionDimensionAggregate('setDate', unit.setDate, unit)
 }
 
 const monthly = [...aggregates.values()].sort((a, b) =>
@@ -225,9 +259,17 @@ const monthly = [...aggregates.values()].sort((a, b) =>
   a.detailType.localeCompare(b.detailType)
 )
 
+const productionDimensions = [...productionDimensionAggregates.values()].sort((a, b) =>
+  a.month.localeCompare(b.month) ||
+  a.dateBasis.localeCompare(b.dateBasis) ||
+  a.clinic.localeCompare(b.clinic, 'ja') ||
+  a.majorType.localeCompare(b.majorType) ||
+  a.detailType.localeCompare(b.detailType, 'ja')
+)
+
 const dashboard = {
   meta: {
-    schemaVersion: '1.2.0',
+    schemaVersion: '1.3.0',
     generatedAt: new Date().toISOString(),
     asOf,
     sourceRows: quality.sourceRows,
@@ -250,6 +292,7 @@ const dashboard = {
   },
   insuranceMaster,
   monthly,
+  productionDimensions,
 }
 
 await Promise.all([

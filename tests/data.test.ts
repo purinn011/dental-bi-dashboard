@@ -38,6 +38,26 @@ describe('generated dashboard data', () => {
     }
   })
 
+  it('contains only aggregated clinic production fields', () => {
+    const allowed = new Set([
+      'month', 'dateBasis', 'majorType', 'detailType', 'clinic',
+      'units', 'futureUnits', 'isPartialMonth', 'isFutureMonth',
+    ])
+    for (const row of data.productionDimensions) {
+      expect(Object.keys(row).every((key) => allowed.has(key))).toBe(true)
+    }
+
+    const dateUnits = data.productionDimensions
+      .filter((row) => row.dateBasis === 'date')
+      .reduce((sum, row) => sum + row.units, 0)
+    const setDateUnits = data.productionDimensions
+      .filter((row) => row.dateBasis === 'setDate')
+      .reduce((sum, row) => sum + row.units, 0)
+
+    expect(dateUnits).toBe(data.meta.validDateUnits)
+    expect(setDateUnits).toBe(data.meta.validSetDateUnits)
+  })
+
   it('prices e.max externally and uses the supplied 4,555 yen internal cost', () => {
     const emaxRows = data.monthly.filter((row) => row.detailType === 'e.max')
     expect(emaxRows.length).toBeGreaterThan(0)
@@ -58,6 +78,17 @@ describe('generated dashboard data', () => {
       row.insuranceAmountMin === row.units * 24970 &&
       row.insuranceAmountMax === row.units * 29990
     )).toBe(true)
+  })
+
+  it('publishes a formula-reconciling CAD/CAM point table', () => {
+    expect(data.insuranceMaster.pointTable).toHaveLength(13)
+    for (const row of data.insuranceMaster.pointTable) {
+      expect(
+        row.formation + row.cadFormation + row.opticalImpression +
+        row.cadTechnology + row.placement + row.innerSurface + row.maintenance +
+        row.cadMaterial + row.adhesiveMaterial,
+      ).toBe(row.totalPoints)
+    }
   })
 
   it('stores vendor prices without converting missing prices to zero', () => {

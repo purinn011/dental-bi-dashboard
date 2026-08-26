@@ -19,6 +19,22 @@ export interface InsuranceDefinition {
   precision: string
 }
 
+export interface InsurancePointTableRow {
+  detailType: string
+  pulpStatus: string
+  materialClass: string
+  formation: number
+  cadFormation: number
+  opticalImpression: number
+  cadTechnology: number
+  placement: number
+  innerSurface: number
+  maintenance: number
+  cadMaterial: number
+  adhesiveMaterial: number
+  totalPoints: number
+}
+
 export interface InsuranceMaster {
   version: string
   schedule: string
@@ -32,8 +48,21 @@ export interface InsuranceMaster {
     patientCopayRate: number
   }
   details: Record<string, InsuranceDefinition>
+  pointTable: InsurancePointTableRow[]
   sources: Array<{ label: string; url: string }>
   notes: string[]
+}
+
+export interface ProductionDimensionAggregate {
+  month: string
+  dateBasis: DateBasis
+  majorType: MajorType
+  detailType: string
+  clinic: string
+  units: number
+  futureUnits: number
+  isPartialMonth: boolean
+  isFutureMonth: boolean
 }
 
 export interface MonthlyAggregate {
@@ -79,4 +108,5 @@ export interface DashboardData {
   priceMaster: PriceMaster
   insuranceMaster: InsuranceMaster
   monthly: MonthlyAggregate[]
+  productionDimensions: ProductionDimensionAggregate[]
 }
