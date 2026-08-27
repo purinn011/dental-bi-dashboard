@@ -40,13 +40,6 @@ const OUTSOURCE_PRICE_LABELS: Record<OutsourcePriceSource, string> = {
 
 const numberFormat = new Intl.NumberFormat('ja-JP')
 const DASHBOARD_DATA_VERSION = '2026-08-26.4'
-const ACCESS_SESSION_KEY = 'dental-bi-access'
-const ACCESS_PASSCODE_HASH = 'cd14333e9dfda1b00b52a2a78b1545ff721e890661c2a428b555026055ad31d5'
-
-async function sha256(value: string) {
-  const digest = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
-}
 
 function calendarYearFromMonth(month: string) {
   return Number(month.slice(0, 4))
@@ -464,56 +457,7 @@ function ErrorState({ message }: { message: string }) {
   )
 }
 
-function LoginGate({ onUnlock }: { onUnlock: () => void }) {
-  const [passcode, setPasscode] = useState('')
-  const [message, setMessage] = useState('')
-  const [isChecking, setIsChecking] = useState(false)
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setIsChecking(true)
-    setMessage('')
-    try {
-      if (await sha256(passcode.trim()) === ACCESS_PASSCODE_HASH) {
-        window.sessionStorage.setItem(ACCESS_SESSION_KEY, 'granted')
-        onUnlock()
-        return
-      }
-      setMessage('パスワードが違います。もう一度入力してください。')
-    } catch {
-      setMessage('認証処理に失敗しました。ページを再読み込みしてください。')
-    } finally {
-      setIsChecking(false)
-    }
-  }
-
-  return (
-    <main className="login-page">
-      <form className="login-card" onSubmit={handleSubmit}>
-        <div className="login-mark" aria-hidden="true">BI</div>
-        <p className="eyebrow">PRIVATE DASHBOARD</p>
-        <h1>院内補綴制作ダッシュボード</h1>
-        <p className="login-copy">閲覧用パスワードを入力してください。</p>
-        <label htmlFor="access-passcode">パスワード</label>
-        <input
-          id="access-passcode"
-          type="password"
-          value={passcode}
-          onChange={(event) => setPasscode(event.target.value)}
-          autoComplete="current-password"
-          autoFocus
-          required
-        />
-        {message && <p className="login-error" role="alert">{message}</p>}
-        <button type="submit" disabled={isChecking}>{isChecking ? '確認中…' : 'ダッシュボードを表示'}</button>
-        <p className="login-note">この画面は簡易的な閲覧制限です。</p>
-      </form>
-    </main>
-  )
-}
-
 function App() {
-  const [isAuthorized, setIsAuthorized] = useState(() => window.sessionStorage.getItem(ACCESS_SESSION_KEY) === 'granted')
   const [data, setData] = useState<DashboardData | null>(null)
   const [error, setError] = useState('')
   const [view, setView] = useState<DashboardView>('performance')
@@ -525,7 +469,6 @@ function App() {
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!isAuthorized) return
     fetch(`${import.meta.env.BASE_URL}data/dashboard.json?v=${DASHBOARD_DATA_VERSION}`)
       .then((response) => {
         if (!response.ok) throw new Error(`HTTP ${response.status}`)
@@ -536,7 +479,7 @@ function App() {
         setRange(`year:${value.meta.asOf.slice(0, 4)}`)
       })
       .catch((caught: unknown) => setError(caught instanceof Error ? caught.message : '不明なエラー'))
-  }, [isAuthorized])
+  }, [])
 
   const basisRows = useMemo(() => data?.monthly.filter((row) => row.dateBasis === basis) ?? [], [data, basis])
   const months = useMemo(() => [...new Set(basisRows.map((row) => row.month))].sort(), [basisRows])
@@ -646,7 +589,6 @@ function App() {
     setSelectedMonth(null)
   }
 
-  if (!isAuthorized) return <LoginGate onUnlock={() => setIsAuthorized(true)} />
   if (error) return <ErrorState message={error} />
   if (!data) return <LoadingState />
 
@@ -668,25 +610,12 @@ function App() {
           <h1>院内補綴制作ダッシュボード</h1>
           <p className="header-copy">制作本数と院内制作による費用効果を月・種類別に確認し、外注単価を比較します。</p>
         </div>
-        <div className="header-actions">
-          <div className="header-meta">
-            <span className="status-dot" />
-            <div>
-              <strong>データ更新</strong>
-              <span>{new Date(data.meta.generatedAt).toLocaleString('ja-JP')}</span>
-            </div>
+        <div className="header-meta">
+          <span className="status-dot" />
+          <div>
+            <strong>データ更新</strong>
+            <span>{new Date(data.meta.generatedAt).toLocaleString('ja-JP')}</span>
           </div>
-          <button
-            className="logout-button"
-            type="button"
-            onClick={() => {
-              window.sessionStorage.removeItem(ACCESS_SESSION_KEY)
-              setData(null)
-              setIsAuthorized(false)
-            }}
-          >
-            ログアウト
-          </button>
         </div>
       </header>
 
