@@ -585,6 +585,251 @@ h2 {
   font-weight: 600;
 }
 
+.retainer-intro {
+  background: linear-gradient(135deg, #ecfeff, #f8fafc 64%);
+  border-color: #a5f3fc;
+}
+
+.retainer-filter-panel {
+  grid-template-columns: minmax(150px, 0.7fr) minmax(150px, 0.7fr) minmax(420px, 2fr);
+}
+
+.retainer-visual-overview {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.72fr) minmax(0, 1.55fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.retainer-visual-card {
+  overflow: hidden;
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.retainer-visual-card a {
+  display: grid;
+  place-items: center;
+  min-height: 230px;
+  background: #f8fafc;
+}
+
+.retainer-visual-card img {
+  display: block;
+  width: 100%;
+  height: 230px;
+  object-fit: cover;
+}
+
+.retainer-visual-card--product img {
+  width: min(82%, 300px);
+  height: auto;
+  object-fit: contain;
+}
+
+.retainer-visual-card figcaption,
+.debt-figure--failure figcaption {
+  display: grid;
+  gap: 4px;
+  padding: 13px 15px;
+  color: #475569;
+  font-size: 0.72rem;
+  line-height: 1.65;
+}
+
+.retainer-visual-card figcaption strong,
+.debt-figure--failure figcaption strong {
+  color: #0f172a;
+  font-size: 0.78rem;
+}
+
+.retainer-route-table-card {
+  margin-bottom: 16px;
+}
+
+.retainer-route-table {
+  min-width: 920px;
+}
+
+.route-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+.route-name span {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+
+.decision-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  margin-bottom: 16px;
+  padding: 22px 24px;
+  color: #78350f;
+  background: linear-gradient(135deg, #fffbeb, #fff7ed);
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.decision-line h2 {
+  margin-bottom: 7px;
+  font-size: 1.25rem;
+}
+
+.decision-line p:not(.section-kicker) {
+  max-width: 850px;
+  margin-bottom: 0;
+  color: #92400e;
+  font-size: 0.78rem;
+  line-height: 1.7;
+}
+
+.decision-line > strong {
+  flex: 0 0 auto;
+  color: #ea580c;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  letter-spacing: -0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-empty {
+  display: grid;
+  place-items: center;
+  height: 300px;
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.technical-debt-section {
+  margin-top: 16px;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.technical-debt-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 10px;
+}
+
+.technical-debt-heading h2 {
+  font-size: 1.3rem;
+}
+
+.technical-debt-heading > p {
+  max-width: 410px;
+  margin: 3px 0 0;
+  color: #92400e;
+  font-size: 0.72rem;
+  line-height: 1.65;
+}
+
+.technical-debt-copy {
+  max-width: 1050px;
+  margin: 0 0 18px;
+  color: #475569;
+  font-size: 0.8rem;
+  line-height: 1.8;
+}
+
+.debt-figure {
+  overflow: hidden;
+  margin: 0;
+  background: #f8fafc;
+  border: 1px solid #dbe2ea;
+  border-radius: 10px;
+}
+
+.debt-figure a {
+  display: block;
+  background: #eef3f8;
+}
+
+.debt-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.debt-figure figcaption {
+  padding: 11px 13px;
+  color: #475569;
+  font-size: 0.7rem;
+  line-height: 1.6;
+}
+
+.debt-figure--hero,
+.debt-figure--threshold {
+  max-width: 1120px;
+  margin-inline: auto;
+}
+
+.debt-figure--failure {
+  display: grid;
+  grid-template-columns: minmax(320px, 1.35fr) minmax(260px, 0.65fr);
+  align-items: stretch;
+  max-width: 1120px;
+  margin: 0 auto 16px;
+}
+
+.debt-figure--failure a {
+  min-height: 300px;
+}
+
+.debt-figure--failure img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.debt-figure--failure figcaption {
+  align-content: center;
+  padding: 20px;
+}
+
+.debt-details {
+  margin: 16px 0;
+  border: 1px solid #dbe2ea;
+  border-radius: 10px;
+}
+
+.debt-details summary {
+  padding: 13px 15px;
+  color: #1e3a8a;
+  background: #f8fafc;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.debt-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  padding: 14px;
+}
+
+.retainer-resin-note {
+  margin: 9px 0 0;
+  color: #78350f;
+}
+
 .insurance-period-note {
   margin-bottom: 16px;
   padding: 12px 16px;
@@ -844,6 +1089,14 @@ footer p {
   .filter-panel--insurance .insurance-assumption {
     grid-column: 1 / -1;
   }
+
+  .retainer-filter-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .retainer-filter-panel .insurance-assumption {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 900px) {
@@ -870,6 +1123,28 @@ footer p {
 
   .chart-grid {
     grid-template-columns: 1fr;
+  }
+
+  .technical-debt-heading {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .debt-gallery {
+    grid-template-columns: 1fr;
+  }
+
+  .retainer-visual-overview,
+  .debt-figure--failure {
+    grid-template-columns: 1fr;
+  }
+
+  .debt-figure--failure a {
+    min-height: auto;
+  }
+
+  .debt-figure--failure img {
+    height: auto;
   }
 }
 
@@ -918,6 +1193,16 @@ footer p {
     grid-template-columns: 1fr;
   }
 
+  .decision-line {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .technical-debt-section {
+    padding: 18px 14px;
+  }
+
   footer {
     flex-direction: column;
     gap: 6px;
@@ -938,6 +1223,7 @@ footer p {
   .filter-field--types,
   .filter-field--detail,
   .filter-field--price-source,
+  .retainer-filter-panel .insurance-assumption,
   .reset-button {
     grid-column: auto;
   }

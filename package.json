@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "data:build": "node scripts/build-dashboard-data.mjs",
+    "data:retainer": "node scripts/build-retainer-data.mjs",
     "test": "vitest run",
     "check:privacy": "node scripts/check-privacy.mjs",
     "verify": "npm run test && npm run build && npm run check:privacy"

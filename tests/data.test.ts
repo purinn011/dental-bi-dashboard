@@ -1,10 +1,14 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import type { DashboardData } from '../src/types'
+import type { DashboardData, RetainerData } from '../src/types'
 
 const data = JSON.parse(
   readFileSync(new URL('../public/data/dashboard.json', import.meta.url), 'utf8'),
 ) as DashboardData
+
+const retainer = JSON.parse(
+  readFileSync(new URL('../public/data/retainer.json', import.meta.url), 'utf8'),
+) as RetainerData
 
 describe('generated dashboard data', () => {
   it('matches the provisional source-data control totals', () => {
@@ -117,5 +121,53 @@ describe('generated dashboard data', () => {
     const zirconiaOnlays = data.monthly.filter((row) => row.detailType === 'Zrアンレー')
     expect(zirconiaOnlays.every((row) => row.externalNarita === row.units * 12000)).toBe(true)
     expect(zirconiaOnlays.every((row) => row.externalToyoDental === row.units * 7900)).toBe(true)
+  })
+})
+
+describe('generated retainer data', () => {
+  it('includes only four-set cases and reconciles the supplied source totals', () => {
+    expect(retainer.meta.sourceRows).toBe(48)
+    expect(retainer.meta.fourSetCases).toBe(30)
+    expect(retainer.meta.standardCases).toBe(28)
+    expect(retainer.meta.singleArchCases).toBe(1)
+    expect(retainer.meta.unknownArchCases).toBe(1)
+    expect(retainer.meta.knownSheets).toBe(228)
+
+    const totals = retainer.monthlyClinics.reduce((target, row) => ({
+      cases: target.cases + row.cases,
+      standardCases: target.standardCases + row.standardCases,
+      singleArchCases: target.singleArchCases + row.singleArchCases,
+      unknownArchCases: target.unknownArchCases + row.unknownArchCases,
+      knownSheets: target.knownSheets + row.knownSheets,
+    }), { cases: 0, standardCases: 0, singleArchCases: 0, unknownArchCases: 0, knownSheets: 0 })
+
+    expect(totals).toEqual({ cases: 30, standardCases: 28, singleArchCases: 1, unknownArchCases: 1, knownSheets: 228 })
+  })
+
+  it('contains only anonymous monthly clinic aggregates', () => {
+    const allowed = new Set([
+      'month', 'clinic', 'cases', 'standardCases', 'singleArchCases',
+      'unknownArchCases', 'knownSheets',
+    ])
+    for (const row of retainer.monthlyClinics) {
+      expect(Object.keys(row).every((key) => allowed.has(key))).toBe(true)
+      expect(['東松原', '下北沢']).toContain(row.clinic)
+    }
+  })
+
+  it('reconciles the three route economics for one upper-and-lower four-set case', () => {
+    const sheets = retainer.master.setsPerCase * 2 * retainer.master.sheetsPerArchPerSet
+    const gcCost = retainer.master.routes.gcOrtho.externalCostPerCase
+    const toyoCost = retainer.master.routes.toyoDental.modelCostPerCase + sheets * retainer.master.sheetCost
+    const inHouseCost = retainer.master.routes.inHouse.modelCostPerCase + sheets * retainer.master.sheetCost
+
+    expect(sheets).toBe(8)
+    expect(gcCost).toBe(22000)
+    expect(toyoCost).toBe(3900)
+    expect(inHouseCost).toBe(2700)
+    expect(retainer.master.salePricePerCase - gcCost).toBe(33000)
+    expect(retainer.master.salePricePerCase - toyoCost).toBe(51100)
+    expect(retainer.master.salePricePerCase - inHouseCost).toBe(52300)
+    expect(toyoCost - inHouseCost).toBe(1200)
   })
 })

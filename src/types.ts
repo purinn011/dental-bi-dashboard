@@ -1,6 +1,6 @@
 export type DateBasis = 'date' | 'setDate'
 export type MajorType = 'CAD' | 'Zr' | 'Other'
-export type DashboardView = 'performance' | 'insurance' | 'priceComparison'
+export type DashboardView = 'performance' | 'insurance' | 'priceComparison' | 'retainer'
 export type OutsourcePriceSource = 'narita' | 'toyoDental'
 
 export interface PriceDefinition {
@@ -109,4 +109,54 @@ export interface DashboardData {
   insuranceMaster: InsuranceMaster
   monthly: MonthlyAggregate[]
   productionDimensions: ProductionDimensionAggregate[]
+}
+
+export interface RetainerRouteDefinition {
+  label: string
+  externalCostPerCase: number
+  modelCostPerCase: number
+}
+
+export interface RetainerMaster {
+  version: string
+  salePricePerCase: number
+  setsPerCase: number
+  sheetsPerArchPerSet: number
+  sheetCost: number
+  modelResinPerArch: number
+  routes: {
+    gcOrtho: RetainerRouteDefinition
+    toyoDental: RetainerRouteDefinition
+    inHouse: RetainerRouteDefinition
+  }
+  notes: string[]
+}
+
+export interface RetainerMonthlyClinicAggregate {
+  month: string
+  clinic: string
+  cases: number
+  standardCases: number
+  singleArchCases: number
+  unknownArchCases: number
+  knownSheets: number
+}
+
+export interface RetainerData {
+  meta: {
+    schemaVersion: string
+    generatedAt: string
+    asOf: string
+    sourceRows: number
+    fourSetCases: number
+    standardCases: number
+    singleArchCases: number
+    unknownArchCases: number
+    knownSheets: number
+    validDateCases: number
+    invalidDateCases: number
+    masterVersion: string
+  }
+  master: RetainerMaster
+  monthlyClinics: RetainerMonthlyClinicAggregate[]
 }
