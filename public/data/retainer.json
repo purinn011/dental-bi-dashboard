@@ -1,0 +1,211 @@
+{
+  "meta": {
+    "schemaVersion": "1.0.0",
+    "generatedAt": "2026-08-28T04:07:17.096Z",
+    "asOf": "2026-08-28",
+    "sourceRows": 48,
+    "fourSetCases": 30,
+    "standardCases": 28,
+    "singleArchCases": 1,
+    "unknownArchCases": 1,
+    "knownSheets": 228,
+    "validDateCases": 30,
+    "invalidDateCases": 0,
+    "masterVersion": "2026-08-28.1"
+  },
+  "master": {
+    "version": "2026-08-28.1",
+    "salePricePerCase": 55000,
+    "setsPerCase": 4,
+    "sheetsPerArchPerSet": 1,
+    "sheetCost": 300,
+    "modelResinPerArch": 100,
+    "routes": {
+      "gcOrtho": {
+        "label": "GCオルソリー",
+        "externalCostPerCase": 22000,
+        "modelCostPerCase": 0
+      },
+      "toyoDental": {
+        "label": "東洋デンタル",
+        "externalCostPerCase": 0,
+        "modelCostPerCase": 1500
+      },
+      "inHouse": {
+        "label": "院内制作",
+        "externalCostPerCase": 0,
+        "modelCostPerCase": 300
+      }
+    },
+    "notes": [
+      "セット数が4セットまたは４セットの症例だけを集計します。",
+      "上下4セットは上4枚＋下4枚＝8枚として計算します。",
+      "金額比較は上下4セット症例だけを対象にし、上のみ・下のみ・歯列不明は除外します。",
+      "院内制作には人件費、失敗・再印刷、消耗品、設備償却、廃棄、教育時間を含みません。"
+    ]
+  },
+  "monthlyClinics": [
+    {
+      "month": "2025-02",
+      "clinic": "下北沢",
+      "cases": 2,
+      "standardCases": 2,
+      "singleArchCases": 0,
+      "unknownArchCases": 0,
+      "knownSheets": 16
+    },
+    {
+      "month": "2025-02",
+      "clinic": "東松原",
+      "cases": 1,
+      "standardCases": 0,
+      "singleArchCases": 0,
+      "unknownArchCases": 1,
+      "knownSheets": 0
+    },
+    {
+      "month": "2025-04",
+      "clinic": "下北沢",
+      "cases": 3,
+      "standardCases": 3,
+      "singleArchCases": 0,
+      "unknownArchCases": 0,
+      "knownSheets": 24
+    },
+    {
+      "month": "2025-07",
+      "clinic": "下北沢",
+      "cases": 2,
+      "standardCases": 2,
+      "singleArchCases": 0,
+      "unknownArchCases": 0,
+      "knownSheets": 16
+    },
+    {
+      "month": "2025-09",
+      "clinic": "下北沢",
+      "cases": 1,
+      "standardCases": 1,
+      "singleArchCases": 0,
+      "unknownArchCases": 0,
+      "knownSheets": 8
+    },
+    {
+      "month": "2025-10",
+      "clinic": "下北沢",
+      "cases": 1,
+      "standardCases": 1,
+      "singleArchCases": 0,
+      "unknownArchCases": 0,
+      "knownSheets": 8
+    },
+    {
+      "month": "2025-11",
+      "clinic": "下北沢",
+      "cases": 1,
+      "standardCases": 1,
+      "singleArchCases": 0,
+      "unknownArchCases": 0,
+      "knownSheets": 8
+    },
+    {
+      "month": "2025-11",
+      "clinic": "東松原",
+      "cases": 1,
+      "standardCases": 1,
+      "singleArchCases": 0,
+      "unknownArchCases": 0,
+      "knownSheets": 8
+    },
+    {
+      "month": "2025-12",
+      "clinic": "東松原",
+      "cases": 1,
+      "standardCases": 1,
+      "singleArchCases": 0,
+      "unknownArchCases": 0,
+      "knownSheets": 8
+    },
+    {
+      "month": "2026-01",
+      "clinic": "下北沢",
+      "cases": 2,
+      "standardCases": 2,
+      "singleArchCases": 0,
+      "unknownArchCases": 0,
+      "knownSheets": 16
+    },
+    {
+      "month": "2026-01",
+      "clinic": "東松原",
+      "cases": 1,
+      "standardCases": 1,
+      "singleArchCases": 0,
+      "unknownArchCases": 0,
+      "knownSheets": 8
+    },
+    {
+      "month": "2026-02",
+      "clinic": "下北沢",
+      "cases": 3,
+      "standardCases": 3,
+      "singleArchCases": 0,
+      "unknownArchCases": 0,
+      "knownSheets": 24
+    },
+    {
+      "month": "2026-03",
+      "clinic": "下北沢",
+      "cases": 3,
+      "standardCases": 3,
+      "singleArchCases": 0,
+      "unknownArchCases": 0,
+      "knownSheets": 24
+    },
+    {
+      "month": "2026-04",
+      "clinic": "下北沢",
+      "cases": 2,
+      "standardCases": 2,
+      "singleArchCases": 0,
+      "unknownArchCases": 0,
+      "knownSheets": 16
+    },
+    {
+      "month": "2026-05",
+      "clinic": "東松原",
+      "cases": 1,
+      "standardCases": 1,
+      "singleArchCases": 0,
+      "unknownArchCases": 0,
+      "knownSheets": 8
+    },
+    {
+      "month": "2026-07",
+      "clinic": "下北沢",
+      "cases": 1,
+      "standardCases": 1,
+      "singleArchCases": 0,
+      "unknownArchCases": 0,
+      "knownSheets": 8
+    },
+    {
+      "month": "2026-07",
+      "clinic": "東松原",
+      "cases": 1,
+      "standardCases": 1,
+      "singleArchCases": 0,
+      "unknownArchCases": 0,
+      "knownSheets": 8
+    },
+    {
+      "month": "2026-08",
+      "clinic": "下北沢",
+      "cases": 3,
+      "standardCases": 2,
+      "singleArchCases": 1,
+      "unknownArchCases": 0,
+      "knownSheets": 20
+    }
+  ]
+}

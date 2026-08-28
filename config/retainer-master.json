@@ -1,0 +1,31 @@
+{
+  "version": "2026-08-28.1",
+  "salePricePerCase": 55000,
+  "setsPerCase": 4,
+  "sheetsPerArchPerSet": 1,
+  "sheetCost": 300,
+  "modelResinPerArch": 100,
+  "routes": {
+    "gcOrtho": {
+      "label": "GCオルソリー",
+      "externalCostPerCase": 22000,
+      "modelCostPerCase": 0
+    },
+    "toyoDental": {
+      "label": "東洋デンタル",
+      "externalCostPerCase": 0,
+      "modelCostPerCase": 1500
+    },
+    "inHouse": {
+      "label": "院内制作",
+      "externalCostPerCase": 0,
+      "modelCostPerCase": 300
+    }
+  },
+  "notes": [
+    "セット数が4セットまたは４セットの症例だけを集計します。",
+    "上下4セットは上4枚＋下4枚＝8枚として計算します。",
+    "金額比較は上下4セット症例だけを対象にし、上のみ・下のみ・歯列不明は除外します。",
+    "院内制作には人件費、失敗・再印刷、消耗品、設備償却、廃棄、教育時間を含みません。"
+  ]
+}

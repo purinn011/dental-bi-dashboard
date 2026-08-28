@@ -14,7 +14,7 @@ import {
 } from 'recharts'
 import { externalAmount, formatMonth, formatYen, savingsAmount, sumNullable } from './lib/metrics'
 import vendorPriceComparison from '../config/vendor-price-comparison.json'
-import type { DashboardData, DashboardView, DateBasis, MajorType, MonthlyAggregate, OutsourcePriceSource } from './types'
+import type { DashboardData, DashboardView, DateBasis, MajorType, MonthlyAggregate, OutsourcePriceSource, RetainerData } from './types'
 
 const COLORS: Record<MajorType, string> = {
   CAD: '#2563eb',
@@ -40,6 +40,7 @@ const OUTSOURCE_PRICE_LABELS: Record<OutsourcePriceSource, string> = {
 
 const numberFormat = new Intl.NumberFormat('ja-JP')
 const DASHBOARD_DATA_VERSION = '2026-08-26.4'
+const RETAINER_DATA_VERSION = '2026-08-28.1'
 
 function calendarYearFromMonth(month: string) {
   return Number(month.slice(0, 4))
@@ -414,6 +415,313 @@ function InsuranceDashboard({ data, basis, onBasisChange }: {
   )
 }
 
+function RetainerDashboard({ data }: { data: RetainerData }) {
+  const years = useMemo(
+    () => [...new Set(data.monthlyClinics.map((row) => Number(row.month.slice(0, 4))))].sort((a, b) => a - b),
+    [data],
+  )
+  const [year, setYear] = useState(() => years.at(-1) ?? Number(data.meta.asOf.slice(0, 4)))
+  const [clinic, setClinic] = useState('all')
+  const rows = useMemo(() => data.monthlyClinics.filter((row) =>
+    Number(row.month.slice(0, 4)) === year && (clinic === 'all' || row.clinic === clinic)
+  ), [data, year, clinic])
+
+  const totals = useMemo(() => rows.reduce((target, row) => ({
+    cases: target.cases + row.cases,
+    standardCases: target.standardCases + row.standardCases,
+    singleArchCases: target.singleArchCases + row.singleArchCases,
+    unknownArchCases: target.unknownArchCases + row.unknownArchCases,
+    knownSheets: target.knownSheets + row.knownSheets,
+  }), { cases: 0, standardCases: 0, singleArchCases: 0, unknownArchCases: 0, knownSheets: 0 }), [rows])
+
+  const monthRows = useMemo(() => {
+    const grouped = new Map(Array.from({ length: 12 }, (_, index) => {
+      const month = `${year}-${String(index + 1).padStart(2, '0')}`
+      return [month, { month, monthLabel: `${index + 1}月`, cases: 0, standardCases: 0 }]
+    }))
+    for (const row of rows) {
+      const target = grouped.get(row.month)
+      if (!target) continue
+      target.cases += row.cases
+      target.standardCases += row.standardCases
+    }
+    return [...grouped.values()]
+  }, [rows, year])
+
+  const clinicRows = useMemo(() => {
+    const grouped = new Map<string, number>()
+    for (const row of rows) grouped.set(row.clinic, (grouped.get(row.clinic) ?? 0) + row.cases)
+    const total = [...grouped.values()].reduce((sum, value) => sum + value, 0)
+    return [...grouped.entries()].map(([name, cases]) => ({
+      clinic: name,
+      cases,
+      share: total ? Math.round((cases / total) * 1000) / 10 : 0,
+    })).sort((a, b) => b.cases - a.cases)
+  }, [rows])
+
+  const standardSheets = data.master.setsPerCase * 2 * data.master.sheetsPerArchPerSet
+  const routeRows = useMemo(() => {
+    const definitions = [
+      ['gcOrtho', data.master.routes.gcOrtho, '#2563eb'],
+      ['toyoDental', data.master.routes.toyoDental, '#0f766e'],
+      ['inHouse', data.master.routes.inHouse, '#7c3aed'],
+    ] as const
+    return definitions.map(([id, route, color]) => {
+      const sheetCost = id === 'gcOrtho' ? 0 : standardSheets * data.master.sheetCost
+      const directCost = route.externalCostPerCase + route.modelCostPerCase + sheetCost
+      const residual = data.master.salePricePerCase - directCost
+      return {
+        id,
+        route: route.label,
+        color,
+        directCost,
+        residual,
+        periodDirectCost: directCost * totals.standardCases,
+        periodResidual: residual * totals.standardCases,
+      }
+    })
+  }, [data, standardSheets, totals.standardCases])
+  const gcResidual = routeRows.find((row) => row.id === 'gcOrtho')?.residual ?? 0
+  const comparisonRevenue = totals.standardCases * data.master.salePricePerCase
+  const clinics = ['東松原', '下北沢']
+  const imageBase = `${import.meta.env.BASE_URL}assets/retainer/`
+
+  return (
+    <>
+      <section className="comparison-intro retainer-intro">
+        <div>
+          <p className="section-kicker">RETAINER ROUTE ECONOMICS</p>
+          <h2>リテーナー制作比較</h2>
+          <p>4セット症例だけを集計し、GCオルソリー・東洋デンタル・院内制作の直接費を同じ条件で比較します。</p>
+        </div>
+        <span className="version-badge">原価基準 {data.meta.masterVersion}</span>
+      </section>
+
+      <section className="quality-banner" aria-label="リテーナー集計条件">
+        <div className="quality-mark">i</div>
+        <div>
+          <strong>4セット症例のみ集計／金額比較は上下4セットに統一</strong>
+          <p>上のみ・下のみと歯列不明は件数に含めますが、3ルートの金額比較から除外します。患者情報は公開データに含みません。</p>
+        </div>
+      </section>
+
+      <section className="retainer-visual-overview" aria-label="リテーナー制作の概要">
+        <figure className="retainer-visual-card retainer-visual-card--product">
+          <a href={`${imageBase}retainer-product.webp`} target="_blank" rel="noreferrer">
+            <img src={`${imageBase}retainer-product.webp`} alt="透明な歯列用リテーナーの完成イメージ" loading="lazy" />
+          </a>
+          <figcaption><strong>リテーナー完成イメージ</strong><span>矯正後の歯列を維持するために装着する透明な保定装置です。</span></figcaption>
+        </figure>
+        <figure className="retainer-visual-card retainer-visual-card--process">
+          <a href={`${imageBase}inhouse-forming-process.webp`} target="_blank" rel="noreferrer">
+            <img src={`${imageBase}inhouse-forming-process.webp`} alt="院内で歯列模型上にリテーナーを成形している工程" loading="lazy" />
+          </a>
+          <figcaption><strong>院内制作の工程</strong><span>3Dプリントした歯列模型を使い、シートを成形・トリミングして仕上げます。</span></figcaption>
+        </figure>
+      </section>
+
+      <section className="filter-panel retainer-filter-panel" aria-label="リテーナー表示条件">
+        <div className="filter-field">
+          <label htmlFor="retainerYear">対象年</label>
+          <select id="retainerYear" value={year} onChange={(event) => setYear(Number(event.target.value))}>
+            {years.map((value) => <option key={value} value={value}>{calendarYearLabel(value)}</option>)}
+          </select>
+        </div>
+        <div className="filter-field">
+          <label htmlFor="retainerClinic">医院</label>
+          <select id="retainerClinic" value={clinic} onChange={(event) => setClinic(event.target.value)}>
+            <option value="all">全医院</option>
+            {clinics.map((value) => <option key={value} value={value}>{value}</option>)}
+          </select>
+        </div>
+        <div className="insurance-assumption">
+          <strong>共通前提</strong>
+          <span>売価 {formatYen(data.master.salePricePerCase)}／4セット／上下は{standardSheets}枚／シート {formatYen(data.master.sheetCost)}・枚</span>
+        </div>
+      </section>
+
+      <section className="kpi-grid retainer-kpi-grid" aria-label="リテーナー主要指標">
+        <Card label="4セット症例" value={`${numberFormat.format(totals.cases)}件`} note="セット数が4セットの症例" />
+        <Card label="上下・比較対象" value={`${numberFormat.format(totals.standardCases)}件`} note={`上のみ ${totals.singleArchCases}件／歯列不明 ${totals.unknownArchCases}件を金額比較から除外`} tone="blue" />
+        <Card label="推定制作枚数" value={`${numberFormat.format(totals.knownSheets)}枚`} note="上下8枚、片顎4枚として集計" />
+        <Card label="比較対象売上" value={formatYen(comparisonRevenue)} note="上下4セット症例×55,000円" tone="green" />
+      </section>
+
+      <section className="chart-card chart-card--wide">
+        <div className="section-heading">
+          <div>
+            <p className="section-kicker">DIRECT COST & RESIDUAL</p>
+            <h2>1症例あたり 制作ルート比較</h2>
+          </div>
+          <span className="scenario-badge">上下4セット・8枚</span>
+        </div>
+        <ResponsiveContainer width="100%" height={280}>
+          <BarChart data={routeRows} layout="vertical" margin={{ top: 8, right: 24, left: 20, bottom: 0 }} accessibilityLayer>
+            <CartesianGrid stroke="#e8edf4" horizontal={false} />
+            <XAxis type="number" domain={[0, data.master.salePricePerCase]} tickFormatter={(value) => `${Math.round(Number(value) / 1000)}千`} tickLine={false} axisLine={false} />
+            <YAxis type="category" dataKey="route" width={118} tickLine={false} axisLine={false} />
+            <Tooltip formatter={(value, name) => [formatYen(Number(value ?? 0)), String(name)]} />
+            <Legend />
+            <Bar name="直接原価" dataKey="directCost" stackId="sale" fill="#f59e0b" radius={[4, 0, 0, 4]} />
+            <Bar name="直接費控除後残額" dataKey="residual" stackId="sale" fill="#16a34a" radius={[0, 4, 4, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </section>
+
+      <section className="table-card retainer-route-table-card">
+        <div className="section-heading">
+          <div>
+            <p className="section-kicker">ROUTE DETAIL</p>
+            <h2>制作ルート別 計算内訳</h2>
+          </div>
+          <p>選択期間の上下4セット {totals.standardCases}件で再計算</p>
+        </div>
+        <div className="table-scroll">
+          <table className="retainer-route-table">
+            <thead>
+              <tr>
+                <th>制作ルート</th>
+                <th className="numeric">1症例の直接原価</th>
+                <th className="numeric">1症例の残額</th>
+                <th className="numeric">GC比改善</th>
+                <th className="numeric">期間直接原価</th>
+                <th className="numeric">期間残額</th>
+              </tr>
+            </thead>
+            <tbody>
+              {routeRows.map((row) => (
+                <tr key={row.id}>
+                  <td><span className="route-name"><span style={{ background: row.color }} />{row.route}</span></td>
+                  <td className="numeric">{formatYen(row.directCost)}</td>
+                  <td className="numeric savings-cell">{formatYen(row.residual)}</td>
+                  <td className="numeric">{row.id === 'gcOrtho' ? '基準' : `+${formatYen(row.residual - gcResidual)}`}</td>
+                  <td className="numeric">{formatYen(row.periodDirectCost)}</td>
+                  <td className="numeric savings-cell">{formatYen(row.periodResidual)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="decision-line" aria-label="院内制作の判断ライン">
+        <div>
+          <p className="section-kicker">DECISION THRESHOLD</p>
+          <h2>院内制作の判断ラインは1症例あたり1,200円</h2>
+          <p>院内制作の人件費・失敗・保守・廃棄・教育負担の合計が1,200円を超える場合、模型を東洋デンタルへ外注する方が実質的に有利です。</p>
+        </div>
+        <strong>1,200円</strong>
+      </section>
+
+      <div className="chart-grid retainer-chart-grid">
+        <section className="chart-card">
+          <div className="section-heading">
+            <div>
+              <p className="section-kicker">CASE TREND</p>
+              <h2>月別 4セット症例数</h2>
+            </div>
+            <p>{year}年・{clinic === 'all' ? '全医院' : clinic}</p>
+          </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={monthRows} margin={{ top: 12, right: 4, left: -18, bottom: 0 }} accessibilityLayer>
+              <CartesianGrid stroke="#e8edf4" vertical={false} />
+              <XAxis dataKey="monthLabel" tickLine={false} axisLine={false} />
+              <YAxis allowDecimals={false} tickLine={false} axisLine={false} />
+              <Tooltip formatter={(value, name) => [`${numberFormat.format(Number(value ?? 0))}件`, String(name)]} />
+              <Legend />
+              <Bar name="4セット症例" dataKey="cases" fill="#2563eb" radius={[4, 4, 0, 0]} />
+              <Bar name="上下・比較対象" dataKey="standardCases" fill="#0f766e" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </section>
+
+        <section className="chart-card">
+          <div className="section-heading">
+            <div>
+              <p className="section-kicker">CLINIC MIX</p>
+              <h2>医院別 4セット症例</h2>
+            </div>
+            <p>東松原／下北沢</p>
+          </div>
+          {clinicRows.length ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart accessibilityLayer>
+                <Pie data={clinicRows} dataKey="cases" nameKey="clinic" cx="50%" cy="45%" innerRadius={58} outerRadius={92} paddingAngle={2} label>
+                  {clinicRows.map((row, index) => <Cell key={row.clinic} fill={index === 0 ? '#2563eb' : '#0f766e'} />)}
+                </Pie>
+                <Tooltip formatter={(value, _, item) => [`${numberFormat.format(Number(value ?? 0))}件（${item?.payload?.share ?? 0}%）`, '症例数']} />
+                <Legend verticalAlign="bottom" />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : <div className="chart-empty">該当する症例がありません</div>}
+        </section>
+      </div>
+
+      <section className="technical-debt-section">
+        <div className="technical-debt-heading">
+          <div>
+            <p className="section-kicker">TECHNICAL DEBT</p>
+            <h2>材料費だけでは見えない院内制作の負担</h2>
+          </div>
+          <p>技術負債は確定費用ではないため、金額には加算せず判断材料として表示します。</p>
+        </div>
+        <p className="technical-debt-copy">光造形による院内制作は材料費を抑えられる一方、温度管理、造形条件の調整、洗浄・二次硬化、清掃、廃液処理、機器保守、スタッフ教育が必要です。手順や条件を標準化せず担当者の経験に依存すると、造形失敗、再製作、納期遅延、属人化が繰り返され、将来の作業負担として蓄積します。</p>
+
+        <figure className="debt-figure debt-figure--failure">
+          <a href={`${imageBase}printing-failure.webp`} target="_blank" rel="noreferrer">
+            <img src={`${imageBase}printing-failure.webp`} alt="サポート破損と造形物の脱落が起きた光造形3Dプリンターの失敗例" loading="lazy" />
+          </a>
+          <figcaption><strong>造形失敗の実例</strong><span>条件不良やサポート設計の問題は、再印刷、レジン槽の清掃、材料廃棄、納期遅延を発生させます。ロスト額は未定義のため、試算金額には含めません。</span></figcaption>
+        </figure>
+
+        <figure className="debt-figure debt-figure--hero">
+          <a href={`${imageBase}technical-debt-overview.webp`} target="_blank" rel="noreferrer">
+            <img src={`${imageBase}technical-debt-overview.webp`} alt="温度管理、清掃、洗浄、二次硬化、安全、教育といった光造形3Dプリンターの技術的負債" loading="lazy" />
+          </a>
+          <figcaption>安い材料費の裏側には、温度・後処理・安全・教育を継続管理する負担があります。</figcaption>
+        </figure>
+
+        <details className="debt-details">
+          <summary>技術負債の詳細画像を見る（3枚）</summary>
+          <div className="debt-gallery">
+            <figure className="debt-figure">
+              <a href={`${imageBase}environment-factors.webp`} target="_blank" rel="noreferrer">
+                <img src={`${imageBase}environment-factors.webp`} alt="樹脂温度、直射光、残渣、振動、撹拌、乾燥などの造形環境因子" loading="lazy" />
+              </a>
+              <figcaption>樹脂温度、紫外線、残渣、振動、撹拌、乾燥条件が造形精度と成功率を左右します。</figcaption>
+            </figure>
+            <figure className="debt-figure">
+              <a href={`${imageBase}debt-cycle.webp`} target="_blank" rel="noreferrer">
+                <img src={`${imageBase}debt-cycle.webp`} alt="条件未固定から造形失敗、場当たり調整、寸法誤差、属人化へ進む悪循環" loading="lazy" />
+              </a>
+              <figcaption>条件未固定のまま場当たり調整を続けると、失敗と属人化が繰り返されます。</figcaption>
+            </figure>
+            <figure className="debt-figure">
+              <a href={`${imageBase}safety-waste.webp`} target="_blank" rel="noreferrer">
+                <img src={`${imageBase}safety-waste.webp`} alt="換気、保護具、廃液処理など光造形に必要な安全と廃棄管理" loading="lazy" />
+              </a>
+              <figcaption>換気、保護具、洗浄液、廃液処理までが院内制作の工程に含まれます。</figcaption>
+            </figure>
+          </div>
+        </details>
+
+        <figure className="debt-figure debt-figure--threshold">
+          <a href={`${imageBase}cost-threshold.webp`} target="_blank" rel="noreferrer">
+            <img src={`${imageBase}cost-threshold.webp`} alt="東洋デンタルの模型印刷1500円と院内材料費300円の差額1200円を示す比較" loading="lazy" />
+          </a>
+          <figcaption>差額1,200円を超える隠れコストがあるかどうかが、院内制作の経済性を分けます。</figcaption>
+        </figure>
+      </section>
+
+      <section className="source-notes" aria-label="リテーナー集計の注記">
+        <strong>試算上の注意</strong>
+        <ul>{data.master.notes.map((note) => <li key={note}>{note}</li>)}</ul>
+        <p className="retainer-resin-note">模型用レジン液は1顎100円を原価根拠とし、院内ルートの比較計算では余剰等を含む基準値300円／上下症例を採用しています。</p>
+      </section>
+    </>
+  )
+}
+
 function getRangeMonths(months: string[], range: string) {
   if (range.startsWith('year:')) {
     const calendarYear = Number(range.slice(5))
@@ -459,6 +767,7 @@ function ErrorState({ message }: { message: string }) {
 
 function App() {
   const [data, setData] = useState<DashboardData | null>(null)
+  const [retainerData, setRetainerData] = useState<RetainerData | null>(null)
   const [error, setError] = useState('')
   const [view, setView] = useState<DashboardView>('performance')
   const [basis, setBasis] = useState<DateBasis>('date')
@@ -469,14 +778,22 @@ function App() {
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch(`${import.meta.env.BASE_URL}data/dashboard.json?v=${DASHBOARD_DATA_VERSION}`)
-      .then((response) => {
-        if (!response.ok) throw new Error(`HTTP ${response.status}`)
-        return response.json()
+    Promise.all([
+      fetch(`${import.meta.env.BASE_URL}data/dashboard.json?v=${DASHBOARD_DATA_VERSION}`),
+      fetch(`${import.meta.env.BASE_URL}data/retainer.json?v=${RETAINER_DATA_VERSION}`),
+    ])
+      .then(async ([dashboardResponse, retainerResponse]) => {
+        if (!dashboardResponse.ok) throw new Error(`実績データ HTTP ${dashboardResponse.status}`)
+        if (!retainerResponse.ok) throw new Error(`リテーナーデータ HTTP ${retainerResponse.status}`)
+        return Promise.all([
+          dashboardResponse.json() as Promise<DashboardData>,
+          retainerResponse.json() as Promise<RetainerData>,
+        ])
       })
-      .then((value: DashboardData) => {
-        setData(value)
-        setRange(`year:${value.meta.asOf.slice(0, 4)}`)
+      .then(([dashboardValue, retainerValue]) => {
+        setData(dashboardValue)
+        setRetainerData(retainerValue)
+        setRange(`year:${dashboardValue.meta.asOf.slice(0, 4)}`)
       })
       .catch((caught: unknown) => setError(caught instanceof Error ? caught.message : '不明なエラー'))
   }, [])
@@ -590,7 +907,7 @@ function App() {
   }
 
   if (error) return <ErrorState message={error} />
-  if (!data) return <LoadingState />
+  if (!data || !retainerData) return <LoadingState />
 
   const latestMonth = monthRows.filter((row) => row.total > 0).at(-1)
   const statusText = selectedMonth
@@ -601,6 +918,7 @@ function App() {
   const savingsExcludedUnits = focusedRows.reduce((sum, row) =>
     sum + (externalAmount(row, priceSource) !== null && row.internalCost === null ? row.units : 0),
   0)
+  const displayedGeneratedAt = view === 'retainer' ? retainerData.meta.generatedAt : data.meta.generatedAt
 
   return (
     <div className="app-shell">
@@ -614,7 +932,7 @@ function App() {
           <span className="status-dot" />
           <div>
             <strong>データ更新</strong>
-            <span>{new Date(data.meta.generatedAt).toLocaleString('ja-JP')}</span>
+            <span>{new Date(displayedGeneratedAt).toLocaleString('ja-JP')}</span>
           </div>
         </div>
       </header>
@@ -640,6 +958,13 @@ function App() {
           onClick={() => setView('priceComparison')}
         >
           外注単価比較
+        </button>
+        <button
+          type="button"
+          aria-current={view === 'retainer' ? 'page' : undefined}
+          onClick={() => setView('retainer')}
+        >
+          リテーナー
         </button>
       </nav>
 
@@ -902,8 +1227,10 @@ function App() {
         </>
       ) : view === 'insurance' ? (
         <InsuranceDashboard data={data} basis={basis} onBasisChange={(nextBasis) => { setBasis(nextBasis); setSelectedMonth(null) }} />
-      ) : (
+      ) : view === 'priceComparison' ? (
         <PriceComparison />
+      ) : (
+        <RetainerDashboard data={retainerData} />
       )}
 
       <footer>
@@ -917,10 +1244,15 @@ function App() {
             <p>保険点数マスター {data.meta.insuranceMasterVersion} ／ {data.insuranceMaster.schedule}</p>
             <p>表示額は算定前提に基づく試算です。実請求はレセプト条件・材料区分を確認してください。</p>
           </>
-        ) : (
+        ) : view === 'priceComparison' ? (
           <>
             <p>比較単価マスター {vendorPriceComparison.version}</p>
             <p>消費税・連結料・ブロック条件・再製作条件は各社へ確認してください。</p>
+          </>
+        ) : (
+          <>
+            <p>リテーナー原価マスター {retainerData.meta.masterVersion} ／ 集計基準日 {retainerData.meta.asOf}</p>
+            <p>直接費控除後残額には、人件費・失敗・設備償却・廃棄・教育時間を含みません。</p>
           </>
         )}
       </footer>
